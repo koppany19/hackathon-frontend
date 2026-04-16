@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "HackAthon",
+    "slug": "HackAthon",
+    "version": "1.0.0",
+    "android": {
+      "package": "com.bence1337.HackAthon"
+    }
+  }
+}
