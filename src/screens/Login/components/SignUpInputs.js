@@ -4,42 +4,138 @@ import InputField from "./InputField";
 import { useCallback, useState } from "react";
 import SubmitButton from "./SubmitButton";
 import { verticalScale } from "../../../theme/sizing";
+import { register } from "../../../api/endpoints/auth";
+import Toast from "react-native-toast-message";
+import {
+  isValidEmail,
+  isNonEmpty,
+  hasMinLength,
+} from "../../../utils/validators";
+import { useNavigation } from "@react-navigation/native";
 
-export default function SignUpInputs({ rootAnimation, onLayout }) {
+export default function SignUpInputs({
+  rootAnimation,
+  onLayout,
+  onSignUpSuccess,
+}) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const onNameChangeHandler = useCallback(
-    (text) => {
-      setName(text);
-    },
-    [setName],
-  );
-  const onEmailChangeHandler = useCallback(
-    (text) => {
-      setEmail(text);
-    },
-    [setEmail],
-  );
-  const onPasswordChangeHandler = useCallback(
-    (text) => {
-      setPassword(text);
-    },
-    [setPassword],
-  );
-  const onConfirmPasswordChangeHandler = useCallback(
-    (text) => {
-      setConfirmPassword(text);
-    },
-    [setConfirmPassword],
-  );
+  const navigation = useNavigation();
 
-  const onSignUpPressHandler = useCallback(() => {
-    console.log("signUpPressed");
-    // Handle sign up logic here
+  const onNameChangeHandler = useCallback((text) => {
+    setName(text);
   }, []);
+
+  const onEmailChangeHandler = useCallback((text) => {
+    setEmail(text);
+  }, []);
+
+  const onPasswordChangeHandler = useCallback((text) => {
+    setPassword(text);
+  }, []);
+
+  const onConfirmPasswordChangeHandler = useCallback((text) => {
+    setConfirmPassword(text);
+  }, []);
+
+  const validate = useCallback(() => {
+    if (!isNonEmpty(name)) {
+      Toast.show({
+        type: "Warning",
+        text1: "Invalid sign up input",
+        text2: "Name is required",
+      });
+      return false;
+    }
+
+    if (!isNonEmpty(email)) {
+      Toast.show({
+        type: "Warning",
+        text1: "Invalid sign up input",
+        text2: "Email is required",
+      });
+      return false;
+    }
+
+    if (!isValidEmail(email)) {
+      Toast.show({
+        type: "Warning",
+        text1: "Invalid sign up input",
+        text2: "Enter a valid email address",
+      });
+      return false;
+    }
+
+    if (!isNonEmpty(password)) {
+      Toast.show({
+        type: "Warning",
+        text1: "Invalid sign up input",
+        text2: "Password is required",
+      });
+      return false;
+    }
+
+    if (!hasMinLength(password, 6)) {
+      Toast.show({
+        type: "Warning",
+        text1: "Invalid sign up input",
+        text2: "Password must be at least 6 characters",
+      });
+      return false;
+    }
+
+    if (!isNonEmpty(confirmPassword)) {
+      Toast.show({
+        type: "Warning",
+        text1: "Invalid sign up input",
+        text2: "Please confirm your password",
+      });
+      return false;
+    }
+
+    if (password !== confirmPassword) {
+      Toast.show({
+        type: "Warning",
+        text1: "Invalid sign up input",
+        text2: "Passwords do not match",
+      });
+      return false;
+    }
+
+    return true;
+  }, [name, email, password, confirmPassword]);
+
+  const onSignUpPressHandler = useCallback(async () => {
+    // if (!validate()) return;
+
+    // try {
+    //   setIsLoading(true);
+    //   await register({ name: name.trim(), email: email.trim(), password });
+    //   Toast.show({
+    //     type: "Success",
+    //     text1: "Sign up successful",
+    //     text2: "You can now log in with your account",
+    //   });
+    //   setName("");
+    //   setEmail("");
+    //   setPassword("");
+    //   setConfirmPassword("");
+    //   onSignUpSuccess?.();
+    // } catch (err) {
+    //   Toast.show({
+    //     type: "Error",
+    //     text1: "Sign up failed",
+    //     text2: err.message || "Something went wrong. Please try again.",
+    //   });
+    // } finally {
+    //   setIsLoading(false);
+    // }
+    navigation.navigate("Form");
+  }, [name, email, password, onSignUpSuccess, validate, navigation]);
 
   return (
     <Animated.View
@@ -58,7 +154,6 @@ export default function SignUpInputs({ rootAnimation, onLayout }) {
         placeHolder="Email Address"
         icon={"email"}
       />
-
       <InputField
         value={password}
         onChangeText={onPasswordChangeHandler}
@@ -73,7 +168,11 @@ export default function SignUpInputs({ rootAnimation, onLayout }) {
         secureTextEntry={true}
         icon={"password"}
       />
-      <SubmitButton title="Sign Up" onPress={onSignUpPressHandler} />
+      <SubmitButton
+        title="Sign Up"
+        onPress={onSignUpPressHandler}
+        loading={isLoading}
+      />
     </Animated.View>
   );
 }

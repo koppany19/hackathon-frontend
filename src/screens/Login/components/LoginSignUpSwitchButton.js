@@ -10,19 +10,17 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 
-const LOGIN_LEFT = horizontalScale(3);
 const PILL_WIDTH_RATIO = 0.48;
-export default function LoginSignUpSwitchButton({ isLogin, onPress }) {
+const LOGIN_LEFT = horizontalScale(3);
+export default function LoginSignUpSwitchButton({
+  isLogin,
+  onPress,
+  pillAnimation,
+}) {
   const [containerWidth, setContainerWidth] = useState(0);
-  const pillAnimation = useSharedValue(LOGIN_LEFT);
+
   const signUpLeft =
     containerWidth - horizontalScale(3) - containerWidth * PILL_WIDTH_RATIO;
-
-  useEffect(() => {
-    pillAnimation.value = withSpring(isLogin ? LOGIN_LEFT : signUpLeft, {
-      damping: 15,
-    });
-  }, [isLogin, signUpLeft, pillAnimation]);
 
   const onLoginPressHandler = () => {
     if (isLogin) return;

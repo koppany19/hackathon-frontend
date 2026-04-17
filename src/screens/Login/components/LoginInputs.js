@@ -6,25 +6,27 @@ import Animated from "react-native-reanimated";
 import theme from "../../../theme";
 import SubmitButton from "./SubmitButton";
 import CustomIcon from "../../../assets/icons/CustomIcon";
+import { login } from "../../../api/endpoints/auth";
+import Toast from "react-native-toast-message";
+import {
+  isValidEmail,
+  isNonEmpty,
+  hasMinLength,
+} from "../../../utils/validators";
 
-export default function LoginInputs({ rootAnimation, onLayout }) {
+export default function LoginInputs({ rootAnimation, onLayout, navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const onEmailChangeHandler = useCallback(
-    (text) => {
-      setEmail(text);
-    },
-    [setEmail],
-  );
+  const onEmailChangeHandler = useCallback((text) => {
+    setEmail(text);
+  }, []);
 
-  const onPasswordChangeHandler = useCallback(
-    (text) => {
-      setPassword(text);
-    },
-    [setPassword],
-  );
+  const onPasswordChangeHandler = useCallback((text) => {
+    setPassword(text);
+  }, []);
 
   const onForgotPasswordPressHandler = useCallback(() => {
     console.log("forgotPasswordPressed");
@@ -32,14 +34,71 @@ export default function LoginInputs({ rootAnimation, onLayout }) {
   }, []);
 
   const onRememberMePressHandler = useCallback(() => {
-    console.log("rememberMePressed");
-    setRememberMe(!rememberMe);
-  }, [rememberMe, setRememberMe]);
-
-  const onLoginPressHandler = useCallback(() => {
-    console.log("loginPressed");
-    // Handle login logic here
+    setRememberMe((prev) => !prev);
   }, []);
+
+  const validate = useCallback(() => {
+    if (!isNonEmpty(email)) {
+      Toast.show({
+        type: "Warning",
+        text1: "Invalid login input",
+        text2: "Email is required",
+      });
+      return false;
+    }
+
+    if (!isValidEmail(email)) {
+      Toast.show({
+        type: "Warning",
+        text1: "Invalid login input",
+        text2: "Enter a valid email address",
+      });
+      return false;
+    }
+
+    if (!isNonEmpty(password)) {
+      Toast.show({
+        type: "Warning",
+        text1: "Invalid login input",
+        text2: "Password is required",
+      });
+      return false;
+    }
+
+    if (!hasMinLength(password, 8)) {
+      Toast.show({
+        type: "Warning",
+        text1: "Invalid login input",
+        text2: "Password must be at least 8 characters",
+      });
+      return false;
+    }
+
+    return true;
+  }, [email, password]);
+
+  const onLoginPressHandler = useCallback(async () => {
+    if (!validate()) return;
+
+    try {
+      setIsLoading(true);
+      await login({ email: email.trim(), password });
+      Toast.show({
+        type: "Success",
+        text1: "Login successful",
+        text2: "Welcome back!",
+      });
+      navigation.replace("Home");
+    } catch (err) {
+      Toast.show({
+        type: "Error",
+        text1: "Login failed",
+        text2: err.message || "Something went wrong. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [email, password, validate, navigation]);
 
   return (
     <Animated.View
@@ -83,7 +142,11 @@ export default function LoginInputs({ rootAnimation, onLayout }) {
           <Text style={styles.forgotPasswordText}>Forgot Password</Text>
         </Pressable>
       </View>
-      <SubmitButton title="Login" onPress={onLoginPressHandler} />
+      <SubmitButton
+        title="Login"
+        onPress={onLoginPressHandler}
+        loading={isLoading}
+      />
     </Animated.View>
   );
 }

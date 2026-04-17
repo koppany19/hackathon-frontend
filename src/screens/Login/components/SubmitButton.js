@@ -1,16 +1,17 @@
-import { Pressable, StyleSheet, Text } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { verticalScale } from "../../../theme/sizing";
 import theme from "../../../theme";
 
-export default function SubmitButton({ onPress, title }) {
+export default function SubmitButton({ onPress, title, loading = false, disabled = false }) {
   return (
     <Pressable
       style={({ pressed }) => [
-        pressed && { opacity: 0.98, transform: [{ scale: 0.98 }] },
+        pressed && !disabled && { opacity: 0.98, transform: [{ scale: 0.98 }] },
         styles.rootContainer,
+        (disabled || loading) && styles.rootContainerDisabled,
       ]}
-      onPress={onPress}
+      onPress={!loading && !disabled ? onPress : undefined}
     >
       <LinearGradient
         colors={["#D4F85A", "#CDF24C", "#C5E93F"]}
@@ -18,7 +19,11 @@ export default function SubmitButton({ onPress, title }) {
         end={{ x: 1, y: 0.5 }}
         style={styles.gradient}
       >
-        <Text style={styles.text}>{title}</Text>
+        {loading ? (
+          <ActivityIndicator color="#2E3A14" />
+        ) : (
+          <Text style={styles.text}>{title}</Text>
+        )}
       </LinearGradient>
     </Pressable>
   );
@@ -43,5 +48,8 @@ const styles = StyleSheet.create({
     color: "#2E3A14",
     fontSize: 18,
     fontFamily: theme.fontFamily.extra,
+  },
+  rootContainerDisabled: {
+    opacity: 0.6,
   },
 });

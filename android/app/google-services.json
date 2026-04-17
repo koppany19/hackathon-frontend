@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "598449792265",
+    "project_id": "hackathon-85d5d",
+    "storage_bucket": "hackathon-85d5d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:598449792265:android:fbfdae7954f85f8c7d1fd8",
+        "android_client_info": {
+          "package_name": "com.bence1337.HackAthon"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "598449792265-sog6ighssa3d2q686k7kni855f2fcmdu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.bence1337.HackAthon",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "598449792265-l2n4qgh0kjhqkkuj7updatknofb3hr0n.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDmgyCYpUijYTTypDgXToFXGCnTSSbupvQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "598449792265-l2n4qgh0kjhqkkuj7updatknofb3hr0n.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { horizontalScale, verticalScale } from "../../../theme/sizing";
 import theme from "../../../theme";
 import { useState } from "react";
@@ -9,6 +9,7 @@ export default function InputField({
   placeHolder,
   icon,
   secureTextEntry,
+  error,
 }) {
   const [hide, setHide] = useState(secureTextEntry);
   const onIconPressHandler = () => {
@@ -16,7 +17,7 @@ export default function InputField({
     setHide((prev) => !prev);
   };
   return (
-    <View style={styles.rootContainer}>
+    <View style={[styles.rootContainer]}>
       <CustomIcon
         name={icon}
         color={theme.colors.text.disabled}
@@ -66,6 +67,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: verticalScale(4),
   },
+
   textInput: {
     flex: 1,
     color: theme.colors.text.primary,

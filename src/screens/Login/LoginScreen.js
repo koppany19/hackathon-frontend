@@ -10,12 +10,13 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
+  withSpring,
 } from "react-native-reanimated";
 import SignUpInputs from "./components/SignUpInputs";
 import OrLoginWith from "./components/OrLoginWith";
 import QuickLogin from "./components/QuickLogin";
-
-export default function LoginScreen() {
+const LOGIN_LEFT = horizontalScale(3);
+export default function LoginScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const [isLogin, setIsLogin] = useState(true);
 
@@ -24,6 +25,7 @@ export default function LoginScreen() {
   const loginFormHeight = useSharedValue(0);
   const signUpFormHeight = useSharedValue(0);
   const activeFormHeight = useSharedValue(0);
+  const pillAnimation = useSharedValue(LOGIN_LEFT);
 
   const onSwitchToggle = useCallback(
     (value) => {
@@ -51,6 +53,27 @@ export default function LoginScreen() {
     },
     [activeFormHeight, loginFormHeight, setIsLogin, signUpFormHeight],
   );
+
+  const onSignUpSuccess = useCallback(() => {
+    setIsLogin(true);
+    loginInputTranslateX.value = withTiming(0, { duration: 300 });
+    signUpInputTranslateX.value = withTiming(Dimensions.get("window").width, {
+      duration: 300,
+    });
+    activeFormHeight.value = withTiming(loginFormHeight.value, {
+      duration: 500,
+    });
+    pillAnimation.value = withSpring(LOGIN_LEFT, {
+      duration: 350,
+      damping: 15,
+    });
+  }, [
+    activeFormHeight,
+    loginFormHeight,
+    loginInputTranslateX,
+    setIsLogin,
+    signUpInputTranslateX,
+  ]);
 
   const loginInputAnimatedStyle = useAnimatedStyle(() => {
     return {
@@ -105,15 +128,21 @@ export default function LoginScreen() {
       >
         {"Sign Up or Log In to \n Build Habits"}
       </Text>
-      <LoginSignUpSwitchButton isLogin={isLogin} onPress={onSwitchToggle} />
+      <LoginSignUpSwitchButton
+        isLogin={isLogin}
+        onPress={onSwitchToggle}
+        pillAnimation={pillAnimation}
+      />
       <Animated.View style={[styles.formsContainer, formWrapperAnimatedStyle]}>
         <LoginInputs
           rootAnimation={loginInputAnimatedStyle}
           onLayout={onLoginLayout}
+          navigation={navigation}
         />
         <SignUpInputs
           rootAnimation={signUpInputAnimatedStyle}
           onLayout={onSignUpLayout}
+          onSignUpSuccess={onSignUpSuccess}
         />
       </Animated.View>
       <OrLoginWith />
