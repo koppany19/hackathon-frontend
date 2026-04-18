@@ -65,8 +65,9 @@ export function googleAuthAndroid({
 }
 
 export function googleOnboarding({
-  accessToken,
-  idToken,
+  google_id,
+  email,
+  name,
   university_id,
   city_id,
   sport_frequency,
@@ -76,10 +77,9 @@ export function googleOnboarding({
   schedule,
 }) {
   return client.post("/onboarding", {
-    access_token: accessToken,
-    accessToken,
-    id_token: idToken,
-    idToken,
+    google_id,
+    email,
+    name,
     university_id,
     city_id,
     sport_frequency,

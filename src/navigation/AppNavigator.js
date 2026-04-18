@@ -6,6 +6,7 @@ import theme from "../theme";
 import LoginScreen from "../screens/Login/LoginScreen";
 import FormScreen from "../screens/Form/FormScreen";
 import BottomTabNavigation from "./stacks/BottomTabNavigation";
+import CameraScreen from "../screens/Tasks/CameraScreen";
 import { useAuth } from "../context/AuthContext";
 
 const Stack = createNativeStackNavigator();
@@ -30,7 +31,14 @@ export default function AppNavigator() {
         }}
       >
         {user ? (
-          <Stack.Screen name="Main" component={BottomTabNavigation} />
+          <>
+            <Stack.Screen name="Main" component={BottomTabNavigation} />
+            <Stack.Screen
+              name="Camera"
+              component={CameraScreen}
+              options={{ animation: "slide_from_bottom" }}
+            />
+          </>
         ) : (
           <>
             <Stack.Screen name="Login" component={LoginScreen} />

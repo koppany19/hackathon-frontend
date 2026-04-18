@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
   rootContainer: {
     width: "100%",
     paddingHorizontal: horizontalScale(5),
-    paddingVertical: verticalScale(3),
+    paddingVertical: verticalScale(8),
     borderBottomColor: "rgba(255,255,255,0.35)",
     borderBottomWidth: 1,
   },

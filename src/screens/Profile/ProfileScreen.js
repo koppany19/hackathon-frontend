@@ -9,6 +9,7 @@ import { horizontalScale, verticalScale } from "../../theme/sizing";
 import { logout } from "../../api/endpoints/auth";
 import { uploadProfileImage } from "../../api/endpoints/uploadImage";
 import { Image } from "expo-image";
+import Toast from "react-native-toast-message";
 
 const AVATAR_SIZE = horizontalScale(96);
 
@@ -16,8 +17,6 @@ export default function ProfileScreen() {
   const { user, clearAuth } = useAuth();
   const insets = useSafeAreaInsets();
   const [localImage, setLocalImage] = useState(null);
-
-  console.log(user);
 
   const onLogoutPress = async () => {
     try {
@@ -38,12 +37,15 @@ export default function ProfileScreen() {
     });
 
     if (!result.canceled) {
+      setLocalImage(result.assets[0].uri);
       try {
         await uploadProfileImage({ image: result.assets[0] });
       } catch (err) {
-        console.log("Failed to upload profile image", err);
-      } finally {
-        setLocalImage(result.assets[0].uri);
+        Toast.show({
+          type: "Error",
+          text1: "Upload failed",
+          text2: err.message || "Could not update profile photo.",
+        });
       }
     }
   };

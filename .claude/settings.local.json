@@ -6,7 +6,8 @@
       "Bash(xargs grep *)",
       "Bash(xargs cat *)",
       "WebFetch(domain:nsfw-categorize.it)",
-      "Bash(node *)"
+      "Bash(node *)",
+      "WebFetch(domain:visioncamera.margelo.com)"
     ]
   }
 }

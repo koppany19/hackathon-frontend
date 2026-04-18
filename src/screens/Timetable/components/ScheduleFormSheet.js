@@ -137,6 +137,8 @@ export default function ScheduleFormSheet({ visible, item, defaultDay, existingI
         start_time: formatTime(startTime),
         end_time: formatTime(endTime),
       });
+    } catch {
+      // error already shown by onSave via Toast
     } finally {
       setLoading(false);
     }

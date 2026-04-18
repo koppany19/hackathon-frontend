@@ -8,20 +8,20 @@ import {
   Image,
   useWindowDimensions,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import * as ImagePicker from "expo-image-picker";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import Skeleton from "react-native-reanimated-skeleton";
 import Toast from "react-native-toast-message";
 import theme from "../../theme";
 import { horizontalScale, verticalScale } from "../../theme/sizing";
 import {
   getTodayTasks,
-  uploadTaskPhoto,
   getAvailableDailyTasks,
 } from "../../api/endpoints/tasks";
 
@@ -39,6 +39,9 @@ const CATEGORY_COLOR = {
   social: "#ec4899",
 };
 
+const SKELETON_BONE = "rgba(255,255,255,0.07)";
+const SKELETON_HIGHLIGHT = "rgba(255,255,255,0.13)";
+
 function CategoryBadge({ category }) {
   const label = CATEGORY_LABEL[category] ?? category;
   const color = CATEGORY_COLOR[category] ?? theme.colors.secondary;
@@ -54,16 +57,8 @@ function CategoryBadge({ category }) {
   );
 }
 
-function TaskCard({
-  item,
-  onPhotoUploaded,
-  onSwapped,
-  cardHeight,
-  navigation,
-  availableTasks,
-}) {
-  const [uploading, setUploading] = useState(false);
-  const [photo, setPhoto] = useState(item.photo_url ?? null);
+function TaskCard({ item, cardHeight, navigation, availableTasks }) {
+  const [photo] = useState(item.photo_url ?? null);
   const completed = item.status === "completed";
 
   const scale = useSharedValue(1);
@@ -71,55 +66,8 @@ function TaskCard({
     transform: [{ scale: scale.value }],
   }));
 
-  const onPickImage = async () => {
-    try {
-      const permission =
-        await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (!permission.granted) {
-        Toast.show({
-          type: "error",
-          text1: "Permission denied",
-          text2: "Gallery access is required",
-        });
-        return;
-      }
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ["images"],
-        allowsEditing: true,
-        quality: 0.85,
-      });
-      if (result.canceled) return;
-
-      const asset = result.assets[0];
-      scale.value = withSpring(0.96, { damping: 10 }, () => {
-        scale.value = withSpring(1, { damping: 12 });
-      });
-
-      setUploading(true);
-      try {
-        const res = await uploadTaskPhoto(item.id, asset);
-        const remoteUri =
-          res?.image_url ?? res?.url ?? res?.data?.image_url ?? asset.uri;
-        setPhoto(remoteUri);
-        onPhotoUploaded(item.id);
-        Toast.show({
-          type: "Success",
-          text1: "Photo uploaded",
-          text2: "Task evidence saved",
-        });
-      } catch (e) {
-        console.log(e);
-        Toast.show({
-          type: "Error",
-          text1: "Upload failed",
-          text2: e.message ?? "Please try again",
-        });
-      } finally {
-        setUploading(false);
-      }
-    } catch (e) {
-      console.log(e);
-    }
+  const onPickImage = () => {
+    navigation.navigate("Camera", { taskId: item.id });
   };
 
   const onSwap = () => {
@@ -129,7 +77,6 @@ function TaskCard({
     );
     navigation.navigate("SwapTask", {
       dailyTask: item,
-      onSwapped,
       availableTasks: filtered,
     });
   };
@@ -146,16 +93,14 @@ function TaskCard({
       {/* Left — photo upload */}
       <Pressable
         onPress={onPickImage}
-        disabled={uploading || completed}
+        disabled={completed}
         style={({ pressed }) => [
           styles.photoBox,
           photo && styles.photoBoxFilled,
           pressed && { opacity: 0.75 },
         ]}
       >
-        {uploading ? (
-          <ActivityIndicator color={theme.colors.secondary} size="small" />
-        ) : photo ? (
+        {photo ? (
           <Image
             source={{ uri: photo }}
             style={styles.photoImage}
@@ -217,6 +162,39 @@ function TaskCard({
   );
 }
 
+function TaskCardSkeleton({ cardHeight }) {
+  return (
+    <Skeleton
+      isLoading
+      duration={1050}
+      animationType="shiver"
+      boneColor={SKELETON_BONE}
+      highlightColor={SKELETON_HIGHLIGHT}
+      containerStyle={[
+        styles.card,
+        styles.skeletonCard,
+        { height: cardHeight },
+      ]}
+    >
+      <View style={styles.skeletonPhotoBox} />
+
+      <View style={styles.skeletonBody}>
+        <View style={styles.skeletonBadge} />
+        <View style={styles.skeletonTitle} />
+        <View style={styles.skeletonDescShort} />
+        <View style={styles.skeletonDescLong} />
+
+        <View style={styles.skeletonFooterRow}>
+          <View style={styles.skeletonDot} />
+          <View style={styles.skeletonDifficulty} />
+        </View>
+
+        <View style={styles.skeletonButton} />
+      </View>
+    </Skeleton>
+  );
+}
+
 export default function TasksScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
@@ -244,9 +222,11 @@ export default function TasksScreen({ navigation }) {
     }
   }, []);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useFocusEffect(
+    useCallback(() => {
+      load();
+    }, [load]),
+  );
 
   useEffect(() => {
     getAvailableDailyTasks()
@@ -257,15 +237,6 @@ export default function TasksScreen({ navigation }) {
       .catch((e) => console.log("Available daily tasks error:", e.message));
   }, []);
 
-  const onPhotoUploaded = useCallback((id) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: "completed" } : t)),
-    );
-  }, []);
-
-  const onSwapped = useCallback(() => {
-    load();
-  }, [load]);
 
   const completedCount = tasks.filter((t) => t.status === "completed").length;
   const total = tasks.length || 3;
@@ -275,7 +246,7 @@ export default function TasksScreen({ navigation }) {
   const BOTTOM_TAB_H = verticalScale(70);
   const availableHeight =
     screenHeight - insets.top - TOP_BAR_H - PROGRESS_H - BOTTOM_TAB_H;
-  const cardHeight = Math.floor(availableHeight / total) - verticalScale(8);
+  const cardHeight = Math.floor(availableHeight / 3) - verticalScale(8);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -294,13 +265,25 @@ export default function TasksScreen({ navigation }) {
       {/* Header */}
       <View style={[styles.topBar, { height: TOP_BAR_H }]}>
         <Text style={styles.screenTitle}>Today's Tasks</Text>
-        <Text style={styles.dateLabel}>
-          {new Date().toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          })}
-        </Text>
+        <View style={styles.topBarRight}>
+          <Text style={styles.dateLabel}>
+            {new Date().toLocaleDateString("en-US", {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            })}
+          </Text>
+          <Pressable
+            onPress={() => navigation.navigate("CreateTask")}
+            hitSlop={12}
+            style={({ pressed }) => [
+              styles.addBtn,
+              pressed && { opacity: 0.6 },
+            ]}
+          >
+            <Text style={styles.addBtnText}>+</Text>
+          </Pressable>
+        </View>
       </View>
 
       {/* Progress */}
@@ -336,8 +319,13 @@ export default function TasksScreen({ navigation }) {
 
       {/* Content */}
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={theme.colors.secondary} size="large" />
+        <View style={styles.taskList}>
+          {Array.from({ length: 3 }).map((_, index) => (
+            <TaskCardSkeleton
+              key={`task-skeleton-${index}`}
+              cardHeight={cardHeight}
+            />
+          ))}
         </View>
       ) : error ? (
         <View style={styles.center}>
@@ -356,11 +344,9 @@ export default function TasksScreen({ navigation }) {
         <View style={styles.taskList}>
           {tasks.map((item) => (
             <TaskCard
-              key={item.id}
+              key={`${item.id}-${item.status}-${item.photo_url ?? ""}`}
               item={item}
               cardHeight={cardHeight}
-              onPhotoUploaded={onPhotoUploaded}
-              onSwapped={onSwapped}
               navigation={navigation}
               availableTasks={availableTasks}
             />
@@ -396,9 +382,30 @@ const styles = StyleSheet.create({
     fontFamily: theme.fontFamily.semiBold,
     letterSpacing: 0.2,
   },
+  topBarRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: horizontalScale(12),
+  },
   dateLabel: {
     color: theme.colors.text.secondary,
     fontSize: horizontalScale(12),
+    fontFamily: theme.fontFamily.normal,
+  },
+  addBtn: {
+    width: horizontalScale(30),
+    height: horizontalScale(30),
+    borderRadius: horizontalScale(10),
+    backgroundColor: "rgba(170, 204, 0, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(170, 204, 0, 0.3)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addBtnText: {
+    color: theme.colors.secondary,
+    fontSize: horizontalScale(20),
+    lineHeight: horizontalScale(24),
     fontFamily: theme.fontFamily.normal,
   },
 
@@ -503,6 +510,61 @@ const styles = StyleSheet.create({
   cardCompleted: {
     borderColor: "rgba(170, 204, 0, 0.25)",
     backgroundColor: "rgba(170, 204, 0, 0.04)",
+  },
+  skeletonCard: {
+    borderColor: "rgba(255,255,255,0.06)",
+    backgroundColor: "rgba(255,255,255,0.02)",
+  },
+
+  skeletonPhotoBox: {
+    width: horizontalScale(80),
+    alignSelf: "stretch",
+    borderRadius: horizontalScale(12),
+  },
+  skeletonBody: {
+    flex: 1,
+    justifyContent: "space-between",
+    paddingVertical: verticalScale(2),
+  },
+  skeletonBadge: {
+    width: horizontalScale(64),
+    height: verticalScale(14),
+    borderRadius: horizontalScale(6),
+  },
+  skeletonTitle: {
+    width: "76%",
+    height: verticalScale(14),
+    borderRadius: horizontalScale(6),
+  },
+  skeletonDescShort: {
+    width: "92%",
+    height: verticalScale(10),
+    borderRadius: horizontalScale(5),
+  },
+  skeletonDescLong: {
+    width: "64%",
+    height: verticalScale(10),
+    borderRadius: horizontalScale(5),
+  },
+  skeletonFooterRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: horizontalScale(5),
+  },
+  skeletonDot: {
+    width: horizontalScale(6),
+    height: horizontalScale(6),
+    borderRadius: horizontalScale(3),
+  },
+  skeletonDifficulty: {
+    width: horizontalScale(56),
+    height: verticalScale(10),
+    borderRadius: horizontalScale(5),
+  },
+  skeletonButton: {
+    width: horizontalScale(86),
+    height: verticalScale(22),
+    borderRadius: horizontalScale(8),
   },
 
   photoBox: {

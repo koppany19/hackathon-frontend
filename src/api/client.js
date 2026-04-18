@@ -37,23 +37,47 @@ async function request(endpoint, options = {}) {
   const isFormData = isFormDataBody(options.body);
   const token = await resolveToken();
 
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...(isFormData ? { Accept: "application/json" } : defaultHeaders),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...options.headers,
-    },
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(
+    () => controller.abort(),
+    config.REQUEST_TIMEOUT_MS,
+  );
 
-  if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ message: "Unknown error" }));
-    throw new Error(error.message || `HTTP ${response.status}`);
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      headers: {
+        ...(isFormData ? { Accept: "application/json" } : defaultHeaders),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Unknown error" }));
+
+      const requestError = new Error(error.message || `HTTP ${response.status}`);
+      requestError.status = response.status;
+      requestError.data = error;
+      throw requestError;
+    }
+
+    return response.json();
+  } catch (err) {
+    if (err.name === "AbortError") {
+      const timeoutError = new Error(
+        "Request timed out. Please check your connection.",
+      );
+      timeoutError.status = 408;
+      throw timeoutError;
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  return response.json();
 }
 
 export const client = {

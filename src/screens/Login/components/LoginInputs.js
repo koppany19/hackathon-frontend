@@ -31,8 +31,11 @@ export default function LoginInputs({ rootAnimation, onLayout, navigation }) {
   }, []);
 
   const onForgotPasswordPressHandler = useCallback(() => {
-    console.log("forgotPasswordPressed");
-    // Handle forgot password logic here
+    Toast.show({
+      type: "Warning",
+      text1: "Coming soon",
+      text2: "Password reset is not available yet.",
+    });
   }, []);
 
   const onRememberMePressHandler = useCallback(() => {
@@ -85,7 +88,6 @@ export default function LoginInputs({ rootAnimation, onLayout, navigation }) {
     try {
       setIsLoading(true);
       const res = await login({ email: email.trim(), password });
-      console.log(res);
       await saveAuth(res.token, res.user);
       Toast.show({
         type: "Success",

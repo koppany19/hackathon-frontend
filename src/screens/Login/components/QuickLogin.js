@@ -3,10 +3,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { horizontalScale, verticalScale } from "../../../theme/sizing";
 import { Image } from "expo-image";
 import theme from "../../../theme";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { useNavigation } from "@react-navigation/native";
 import { googleAuthAndroid } from "../../../api/endpoints/auth";
 import { useAuth } from "../../../context/AuthContext";
+import Toast from "react-native-toast-message";
 
 const googleIcon = require("../../../assets/images/google.png");
 
@@ -43,24 +44,43 @@ export default function QuickLogin() {
         throw new Error("Google access token is missing before API call");
       }
 
-      console.log(tokens);
-
       try {
         const res = await googleAuthAndroid({
           accessToken: tokens.accessToken,
           idToken: dataAuth.data.idToken,
         });
-        console.log(res);
         await saveAuth(res.token, res.user);
         navigation.replace("Main");
       } catch (error) {
-        navigation.navigate("Form", {
-          accessToken: tokens.accessToken,
-          idToken: dataAuth.data.idToken,
-        });
+        const shouldOnboard =
+          error?.message === "User not found. Please register first." ||
+          error?.data?.needs_onboarding;
+
+        if (shouldOnboard) {
+          navigation.navigate("Form", {
+            accessToken: tokens.accessToken,
+            idToken: dataAuth.data.idToken,
+            googleData: error?.data?.google_data ?? {
+              email: dataAuth?.data?.user?.email,
+              name: dataAuth?.data?.user?.name,
+            },
+          });
+        } else {
+          Toast.show({
+            type: "Error",
+            text1: "Sign-in failed",
+            text2: error?.message || "Google sign-in failed. Please try again.",
+          });
+        }
       }
     } catch (error) {
-      console.error("Google Sign-In error:", error);
+      if (error?.code !== statusCodes.SIGN_IN_CANCELLED) {
+        Toast.show({
+          type: "Error",
+          text1: "Sign-in error",
+          text2: error?.message || "Something went wrong. Please try again.",
+        });
+      }
     } finally {
       setIsLoading(false);
     }

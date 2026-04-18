@@ -62,7 +62,11 @@ export default function UpdateTimetableScreen({ navigation }) {
         setImage(result.assets[0]);
       }
     } catch (e) {
-      console.log(e);
+      Toast.show({
+        type: "Error",
+        text1: "Image picker failed",
+        text2: e.message || "Could not open the image library.",
+      });
     }
   };
 

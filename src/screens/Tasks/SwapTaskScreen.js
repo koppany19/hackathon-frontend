@@ -173,7 +173,7 @@ function Section({ title, tasks, onSelect, selectingId }) {
 
 export default function SwapTaskScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { dailyTask, availableTasks = [], onSwapped } = route.params;
+  const { dailyTask, availableTasks = [] } = route.params;
 
   const [selectingId, setSelectingId] = useState(null);
 
@@ -189,7 +189,6 @@ export default function SwapTaskScreen({ navigation, route }) {
         text1: "Task swapped",
         text2: targetTask.title,
       });
-      onSwapped?.();
       navigation.goBack();
     } catch (e) {
       Toast.show({
@@ -238,7 +237,7 @@ export default function SwapTaskScreen({ navigation, route }) {
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom + verticalScale(24) },
+          { paddingBottom: insets.bottom + verticalScale(70) },
         ]}
         showsVerticalScrollIndicator={false}
       >

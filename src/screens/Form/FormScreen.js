@@ -44,7 +44,7 @@ export default function FormScreen({ route, navigation }) {
   const insets = useSafeAreaInsets();
   const screenWidth = Dimensions.get("window").width;
 
-  const { email, name, password, accessToken, idToken } = route.params || {};
+  const { email, name, password, accessToken, googleData } = route.params || {};
   const isGoogleFlow = !!accessToken;
 
   const [university, setUniversity] = useState(null);
@@ -57,6 +57,7 @@ export default function FormScreen({ route, navigation }) {
 
   const [currentFormState, setCurrentFormState] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const { saveAuth } = useAuth();
 
   const form1X = useSharedValue(0);
@@ -89,15 +90,25 @@ export default function FormScreen({ route, navigation }) {
     }
   };
 
+  const oAuthOnboarding = (profileData) => {
+    return googleOnboarding({
+      google_id: googleData?.google_id,
+      email: googleData?.email,
+      name: googleData?.name,
+      university_id: profileData.university_id,
+      city_id: profileData.city_id,
+      ...profileData,
+    });
+  };
+
   const onSubmitPressHandler = async () => {
-    console.log("press");
     if (currentFormState === 0) {
       if (!university || !city || !timeTableImage) return;
+      setLoadingMessage("Analysing your timetable…");
       setLoading(true);
       try {
         const res = await timeTableToJson({ image: timeTableImage });
-        console.log(res);
-        if (res.data.length === 0) {
+        if (!res.data || res.data.length === 0) {
           Toast.show({
             type: "Warning",
             text1: "No timetable found",
@@ -109,7 +120,6 @@ export default function FormScreen({ route, navigation }) {
         setSchedule(res);
         setCurrentFormState(1);
       } catch (e) {
-        console.log(e);
         Toast.show({
           type: "Error",
           text1: "Upload failed",
@@ -131,11 +141,12 @@ export default function FormScreen({ route, navigation }) {
         social: socialData,
         schedule,
       };
+      setLoadingMessage("Creating your account…");
+      setLoading(true);
       try {
         const res = isGoogleFlow
-          ? await googleOnboarding({ accessToken, idToken, ...sharedProfile })
+          ? await oAuthOnboarding(sharedProfile)
           : await register({ name, email, password, ...sharedProfile });
-        console.log(res);
         if (res) {
           await saveAuth(res.token, res.user);
           Toast.show({
@@ -146,13 +157,13 @@ export default function FormScreen({ route, navigation }) {
           navigation.replace("Main");
         }
       } catch (e) {
-        console.log(e);
         Toast.show({
           type: "Error",
           text1: "Registration failed",
           text2: e.message || "Please try again.",
         });
-        return;
+      } finally {
+        setLoading(false);
       }
     }
   };
@@ -238,7 +249,7 @@ export default function FormScreen({ route, navigation }) {
             end={{ x: 0.5, y: 1 }}
           />
           <ActivityIndicator size={56} color="#aacc00" />
-          <Text style={styles.loadingTitle}>Analysing your timetable</Text>
+          <Text style={styles.loadingTitle}>{loadingMessage}</Text>
           <Text style={styles.loadingSubtitle}>
             This may take a few seconds…
           </Text>

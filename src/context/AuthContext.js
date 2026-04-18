@@ -12,21 +12,26 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    AsyncStorage.getItem("authToken").then(async (t) => {
-      if (t) {
-        setAuthToken(t);
-        try {
-          const res = await getMe();
-          setToken(t);
-          setUser(normalizeUser(res.user ?? res));
-        } catch (e) {
-          console.log(e);
-          setAuthToken(null);
-          await AsyncStorage.removeItem("authToken");
+    (async () => {
+      try {
+        const t = await AsyncStorage.getItem("authToken");
+        if (t) {
+          setAuthToken(t);
+          try {
+            const res = await getMe();
+            setToken(t);
+            setUser(normalizeUser(res.user ?? res));
+          } catch {
+            setAuthToken(null);
+            await AsyncStorage.removeItem("authToken").catch(() => {});
+          }
         }
+      } catch {
+        // AsyncStorage unavailable — start unauthenticated
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-    });
+    })();
   }, []);
 
   const saveAuth = async (newToken, newUser) => {

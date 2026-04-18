@@ -45,8 +45,8 @@ export default function UniversityAndTimeTable({
       try {
         const res = await searchUniversities({ q: text });
         setUniversityData(res);
-      } catch (e) {
-        console.log(e);
+      } catch {
+        setUniversityData([]);
       }
     } else {
       setUniversityData([]);
@@ -58,10 +58,9 @@ export default function UniversityAndTimeTable({
     if (text.length >= 4) {
       try {
         const res = await searchCities({ q: text });
-        console.log(res);
         setCityData(res);
-      } catch (e) {
-        console.log(e);
+      } catch {
+        setCityData([]);
       }
     } else {
       setCityData([]);
@@ -74,7 +73,7 @@ export default function UniversityAndTimeTable({
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted) {
         Toast.show({
-          type: "error",
+          type: "Warning",
           text1: "Permission denied",
           text2: "You have to upload your timetable to continue",
         });
@@ -93,7 +92,11 @@ export default function UniversityAndTimeTable({
         setTimeTableImage(image);
       }
     } catch (e) {
-      console.log(e);
+      Toast.show({
+        type: "Error",
+        text1: "Image picker failed",
+        text2: e.message || "Could not open the image library.",
+      });
     }
   };
 

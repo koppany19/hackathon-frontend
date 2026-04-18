@@ -1,15 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ActivityIndicator,
-  Image,
-  Pressable,
-} from "react-native";
+import { View, Text, StyleSheet, Image, Pressable, ScrollView, Dimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { FlashList } from "@shopify/flash-list";
+import Skeleton from "react-native-reanimated-skeleton";
 import { fetchLeaderboard } from "../../api/endpoints/leaderboard";
 import theme from "../../theme";
 import { horizontalScale, verticalScale } from "../../theme/sizing";
@@ -25,6 +19,9 @@ const PODIUM_AVATAR = {
   2: horizontalScale(58),
   3: horizontalScale(54),
 };
+
+const SKELETON_BONE = "rgba(255,255,255,0.07)";
+const SKELETON_HIGHLIGHT = "rgba(255,255,255,0.13)";
 
 function getInitials(name) {
   return name ? name.slice(0, 2).toUpperCase() : "?";
@@ -50,12 +47,7 @@ function Avatar({ uri, name, size, borderColor }) {
           style={{ width: size, height: size, borderRadius: size / 2 }}
         />
       ) : (
-        <Text
-          style={[
-            styles.avatarInitials,
-            { fontSize: size * 0.3 },
-          ]}
-        >
+        <Text style={[styles.avatarInitials, { fontSize: size * 0.3 }]}>
           {getInitials(name)}
         </Text>
       )}
@@ -94,8 +86,8 @@ function PodiumSlot({ user, rank }) {
             height: isFirst
               ? verticalScale(60)
               : rank === 2
-              ? verticalScale(42)
-              : verticalScale(28),
+                ? verticalScale(42)
+                : verticalScale(28),
             backgroundColor: medalColor + "22",
             borderTopWidth: 2,
             borderTopColor: medalColor + "66",
@@ -126,6 +118,89 @@ function ListItem({ user, rank }) {
   );
 }
 
+const SCREEN_W = Dimensions.get("window").width;
+// podium slot width: (screen - horizontal padding 32 - two gaps 16) / 3
+const SLOT_W = Math.floor((SCREEN_W - horizontalScale(48)) / 3);
+
+function SkeletonBone({ w, h, r = 6, mt = 0 }) {
+  return (
+    <View
+      style={{
+        width: w,
+        height: h,
+        borderRadius: r,
+        marginTop: mt,
+      }}
+    />
+  );
+}
+
+function LeaderboardLoadingSkeleton() {
+  const props = {
+    isLoading: true,
+    duration: 1050,
+    animationType: "shiver",
+    boneColor: SKELETON_BONE,
+    highlightColor: SKELETON_HIGHLIGHT,
+  };
+
+  return (
+    <ScrollView
+      scrollEnabled={false}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.skeletonScroll}
+    >
+      {/* Podium */}
+      <Skeleton {...props} containerStyle={styles.skeletonPodiumWrap}>
+        <View style={styles.skeletonPodiumRow}>
+          {/* 2nd place */}
+          <View style={[styles.skeletonSlot, { marginTop: verticalScale(28) }]}>
+            <SkeletonBone w={horizontalScale(22)} h={horizontalScale(22)} r={11} />
+            <SkeletonBone w={PODIUM_AVATAR[2]} h={PODIUM_AVATAR[2]} r={PODIUM_AVATAR[2] / 2} mt={verticalScale(6)} />
+            <SkeletonBone w={horizontalScale(50)} h={verticalScale(10)} mt={verticalScale(6)} />
+            <SkeletonBone w={horizontalScale(36)} h={verticalScale(9)} mt={verticalScale(4)} />
+            <SkeletonBone w={SLOT_W} h={verticalScale(42)} r={4} mt={verticalScale(6)} />
+          </View>
+          {/* 1st place */}
+          <View style={styles.skeletonSlot}>
+            <SkeletonBone w={horizontalScale(22)} h={horizontalScale(22)} r={11} />
+            <SkeletonBone w={PODIUM_AVATAR[1]} h={PODIUM_AVATAR[1]} r={PODIUM_AVATAR[1] / 2} mt={verticalScale(6)} />
+            <SkeletonBone w={horizontalScale(64)} h={verticalScale(10)} mt={verticalScale(6)} />
+            <SkeletonBone w={horizontalScale(36)} h={verticalScale(9)} mt={verticalScale(4)} />
+            <SkeletonBone w={SLOT_W} h={verticalScale(60)} r={4} mt={verticalScale(6)} />
+          </View>
+          {/* 3rd place */}
+          <View style={[styles.skeletonSlot, { marginTop: verticalScale(28) }]}>
+            <SkeletonBone w={horizontalScale(22)} h={horizontalScale(22)} r={11} />
+            <SkeletonBone w={PODIUM_AVATAR[3]} h={PODIUM_AVATAR[3]} r={PODIUM_AVATAR[3] / 2} mt={verticalScale(6)} />
+            <SkeletonBone w={horizontalScale(50)} h={verticalScale(10)} mt={verticalScale(6)} />
+            <SkeletonBone w={horizontalScale(36)} h={verticalScale(9)} mt={verticalScale(4)} />
+            <SkeletonBone w={SLOT_W} h={verticalScale(28)} r={4} mt={verticalScale(6)} />
+          </View>
+        </View>
+      </Skeleton>
+
+      {/* Rankings header */}
+      <Skeleton {...props} containerStyle={styles.skeletonSectionHeader}>
+        <SkeletonBone w={horizontalScale(86)} h={verticalScale(10)} />
+      </Skeleton>
+
+      {/* List rows */}
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Skeleton key={i} {...props} containerStyle={styles.skeletonRow}>
+          <SkeletonBone w={horizontalScale(18)} h={verticalScale(12)} r={4} />
+          <SkeletonBone w={horizontalScale(40)} h={horizontalScale(40)} r={20} />
+          <View style={styles.skeletonRowInfo}>
+            <SkeletonBone w={horizontalScale(120)} h={verticalScale(11)} />
+            <SkeletonBone w={horizontalScale(72)} h={verticalScale(9)} mt={verticalScale(5)} />
+          </View>
+          <SkeletonBone w={horizontalScale(44)} h={verticalScale(11)} />
+        </Skeleton>
+      ))}
+    </ScrollView>
+  );
+}
+
 export default function LeaderboardScreen() {
   const insets = useSafeAreaInsets();
   const [data, setData] = useState([]);
@@ -137,7 +212,7 @@ export default function LeaderboardScreen() {
       setLoading(true);
       setError(null);
       const res = await fetchLeaderboard();
-      const list = Array.isArray(res) ? res : res.data ?? [];
+      const list = Array.isArray(res) ? res : (res.data ?? []);
       setData(list);
     } catch (e) {
       setError(e.message ?? "Failed to load");
@@ -155,7 +230,7 @@ export default function LeaderboardScreen() {
 
   const renderItem = useCallback(
     ({ item, index }) => <ListItem user={item} rank={index + 4} />,
-    []
+    [],
   );
 
   const keyExtractor = useCallback((item) => String(item.id), []);
@@ -191,9 +266,7 @@ export default function LeaderboardScreen() {
       </View>
 
       {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={theme.colors.secondary} size="large" />
-        </View>
+        <LeaderboardLoadingSkeleton />
       ) : error ? (
         <View style={styles.center}>
           <Text style={styles.errorText}>{error}</Text>
@@ -286,7 +359,43 @@ const styles = StyleSheet.create({
   },
 
   flashContent: {
-    paddingBottom: verticalScale(32),
+    paddingBottom: verticalScale(120),
+  },
+
+  skeletonScroll: {
+    paddingBottom: verticalScale(120),
+  },
+  skeletonPodiumWrap: {
+    width: SCREEN_W,
+    paddingHorizontal: horizontalScale(16),
+    paddingTop: verticalScale(8),
+    paddingBottom: verticalScale(8),
+  },
+  skeletonPodiumRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: horizontalScale(8),
+  },
+  skeletonSlot: {
+    width: SLOT_W,
+    alignItems: "center",
+  },
+  skeletonSectionHeader: {
+    width: SCREEN_W,
+    paddingHorizontal: horizontalScale(24),
+    paddingTop: verticalScale(4),
+    paddingBottom: verticalScale(12),
+  },
+  skeletonRow: {
+    width: SCREEN_W,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: horizontalScale(24),
+    paddingVertical: verticalScale(10),
+    gap: horizontalScale(12),
+  },
+  skeletonRowInfo: {
+    flex: 1,
   },
 
   /* Podium */

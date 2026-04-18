@@ -12,7 +12,10 @@ const EXTENSION_TO_MIME = {
 function inferMimeType(image) {
   if (image?.mimeType) return image.mimeType;
   if (image?.type && image.type.includes("/")) return image.type;
-  const ext = (image?.fileName || image?.name || "").split(".").pop()?.toLowerCase();
+  const ext = (image?.fileName || image?.name || "")
+    .split(".")
+    .pop()
+    ?.toLowerCase();
   return EXTENSION_TO_MIME[ext] || "image/jpeg";
 }
 
@@ -29,6 +32,8 @@ export function getTodayTasks() {
 
 export function uploadTaskPhoto(taskId, image) {
   if (!image?.uri) throw new Error("Image file is missing");
+  if (taskId == null) throw new Error("Task id is missing");
+
   const formData = new FormData();
   formData.append("image", {
     uri: image.uri,
@@ -36,6 +41,7 @@ export function uploadTaskPhoto(taskId, image) {
     type: inferMimeType(image),
   });
   formData.append("daily_task_id", String(taskId));
+
   return client.post("/feed/image", formData);
 }
 
@@ -43,7 +49,10 @@ export function getAvailableDailyTasks() {
   return client.get("/daily-tasks/available");
 }
 
-
 export function swapTask(dailyTaskId, targetTaskId) {
   return client.patch(`/daily-tasks/${dailyTaskId}/swap/${targetTaskId}`);
+}
+
+export function createCustomTask(data) {
+  return client.post("/daily-tasks/custom", data);
 }
