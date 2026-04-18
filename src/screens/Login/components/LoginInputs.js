@@ -13,12 +13,14 @@ import {
   isNonEmpty,
   hasMinLength,
 } from "../../../utils/validators";
+import { useAuth } from "../../../context/AuthContext";
 
 export default function LoginInputs({ rootAnimation, onLayout, navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const { saveAuth } = useAuth();
 
   const onEmailChangeHandler = useCallback((text) => {
     setEmail(text);
@@ -82,13 +84,15 @@ export default function LoginInputs({ rootAnimation, onLayout, navigation }) {
 
     try {
       setIsLoading(true);
-      await login({ email: email.trim(), password });
+      const res = await login({ email: email.trim(), password });
+      console.log(res);
+      await saveAuth(res.token, res.user);
       Toast.show({
         type: "Success",
         text1: "Login successful",
         text2: "Welcome back!",
       });
-      navigation.replace("Home");
+      navigation.replace("Main");
     } catch (err) {
       Toast.show({
         type: "Error",

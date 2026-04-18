@@ -1,14 +1,26 @@
 import React from "react";
+import { ActivityIndicator, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import HomeScreen from "../screens/Home/HomeScreen";
 import theme from "../theme";
 import LoginScreen from "../screens/Login/LoginScreen";
 import FormScreen from "../screens/Form/FormScreen";
+import BottomTabNavigation from "./stacks/BottomTabNavigation";
+import { useAuth } from "../context/AuthContext";
 
 const Stack = createNativeStackNavigator();
 
 export default function AppNavigator() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, backgroundColor: theme.colors.background, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color={theme.colors.secondary} />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -17,9 +29,14 @@ export default function AppNavigator() {
           contentStyle: { backgroundColor: theme.colors.background },
         }}
       >
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Form" component={FormScreen} />
+        {user ? (
+          <Stack.Screen name="Main" component={BottomTabNavigation} />
+        ) : (
+          <>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Form" component={FormScreen} />
+          </>
+        )}
       </Stack.Navigator>
     </NavigationContainer>
   );

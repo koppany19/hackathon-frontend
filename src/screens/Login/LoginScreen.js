@@ -1,5 +1,11 @@
 import { useCallback, useState } from "react";
-import { Dimensions, StyleSheet, Text, View } from "react-native";
+import {
+  Dimensions,
+  KeyboardAvoidingView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { horizontalScale, verticalScale } from "../../theme/sizing";
 import theme from "../../theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -112,7 +118,7 @@ export default function LoginScreen({ navigation }) {
   );
 
   return (
-    <View style={styles.rootContainer}>
+    <KeyboardAvoidingView style={styles.rootContainer} behavior="padding">
       <LinearGradient
         style={styles.linear}
         colors={[
@@ -124,7 +130,7 @@ export default function LoginScreen({ navigation }) {
         end={{ x: 0.5, y: 1 }}
       />
       <Text
-        style={[styles.title, { marginTop: insets.top + verticalScale(35) }]}
+        style={[styles.title, { marginTop: insets.top + verticalScale(60) }]}
       >
         {"Sign Up or Log In to \n Build Habits"}
       </Text>
@@ -147,7 +153,7 @@ export default function LoginScreen({ navigation }) {
       </Animated.View>
       <OrLoginWith />
       <QuickLogin />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

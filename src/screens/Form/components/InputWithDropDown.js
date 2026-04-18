@@ -14,16 +14,19 @@ import DropDownElement from "./DropDownElement";
 
 export default function InputWithDropDown({
   value = "",
+  setText,
   onChangeText,
   placeHolder = "Type at least 3 characters",
   icon = "username",
   minChars = 3,
   data,
+  setValue,
+  unsetValue,
 }) {
   const showDropdown = value.trim().length >= minChars;
   const dropdownHeight = useSharedValue(0);
   const dropDownOpacity = useSharedValue(0);
-  const DROPDOWN_HEIGHT = verticalScale(75);
+  const DROPDOWN_HEIGHT = verticalScale(150);
 
   useEffect(() => {
     if (showDropdown) {
@@ -43,7 +46,19 @@ export default function InputWithDropDown({
     opacity: dropDownOpacity.value,
   }));
 
-  const ListItem = ({ item }) => <DropDownElement item={item} />;
+  const onItemPressHandler = (item) => {
+    setText(item.name);
+    setValue(item.id);
+    unsetValue();
+    dropdownHeight.value = withTiming(0, { duration: 150 });
+    setTimeout(() => {
+      dropDownOpacity.value = withTiming(0, { duration: 0 });
+    }, 100);
+  };
+
+  const ListItem = ({ item }) => (
+    <DropDownElement item={item} onPress={onItemPressHandler} />
+  );
 
   return (
     <View style={styles.wrapper}>
@@ -74,7 +89,9 @@ export default function InputWithDropDown({
         <FlashList
           data={data}
           renderItem={ListItem}
-          keyExtractor={(item) => item}
+          keyExtractor={(item, index) =>
+            String(item?.id ?? item?.name ?? index)
+          }
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />

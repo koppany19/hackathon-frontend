@@ -110,31 +110,17 @@ export default function SignUpInputs({
   }, [name, email, password, confirmPassword]);
 
   const onSignUpPressHandler = useCallback(async () => {
-    // if (!validate()) return;
-
-    // try {
-    //   setIsLoading(true);
-    //   await register({ name: name.trim(), email: email.trim(), password });
-    //   Toast.show({
-    //     type: "Success",
-    //     text1: "Sign up successful",
-    //     text2: "You can now log in with your account",
-    //   });
-    //   setName("");
-    //   setEmail("");
-    //   setPassword("");
-    //   setConfirmPassword("");
-    //   onSignUpSuccess?.();
-    // } catch (err) {
-    //   Toast.show({
-    //     type: "Error",
-    //     text1: "Sign up failed",
-    //     text2: err.message || "Something went wrong. Please try again.",
-    //   });
-    // } finally {
-    //   setIsLoading(false);
-    // }
-    navigation.navigate("Form");
+    if (!validate()) return;
+    setName("");
+    setEmail("");
+    setPassword("");
+    setConfirmPassword("");
+    onSignUpSuccess?.();
+    navigation.navigate("Form", {
+      email: email,
+      password: password,
+      name: name,
+    });
   }, [name, email, password, onSignUpSuccess, validate, navigation]);
 
   return (

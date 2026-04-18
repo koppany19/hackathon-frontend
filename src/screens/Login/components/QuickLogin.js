@@ -4,7 +4,9 @@ import { horizontalScale, verticalScale } from "../../../theme/sizing";
 import { Image } from "expo-image";
 import theme from "../../../theme";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { useNavigation } from "@react-navigation/native";
 import { googleAuthAndroid } from "../../../api/endpoints/auth";
+import { useAuth } from "../../../context/AuthContext";
 
 const googleIcon = require("../../../assets/images/google.png");
 
@@ -13,6 +15,8 @@ const WEB_CLIENT_ID =
 
 export default function QuickLogin() {
   const [isLoading, setIsLoading] = useState(false);
+  const navigation = useNavigation();
+  const { saveAuth } = useAuth();
 
   const onGoogleButtonPress = async () => {
     try {
@@ -35,20 +39,26 @@ export default function QuickLogin() {
 
       const tokens = await GoogleSignin.getTokens();
 
-      console.log("=== GOOGLE SIGN-IN SUCCESS ===");
-      console.log("User:", JSON.stringify(dataAuth.data.user, null, 2));
-      console.log("idToken:", dataAuth.data.idToken);
-      console.log("accessToken:", tokens.accessToken);
-      console.log("==============================");
       if (!tokens?.accessToken) {
         throw new Error("Google access token is missing before API call");
       }
 
-      await googleAuthAndroid({
-        accessToken: tokens.accessToken,
-        idToken: dataAuth.data.idToken,
-      });
-      console.log("Signed in successfully");
+      console.log(tokens);
+
+      try {
+        const res = await googleAuthAndroid({
+          accessToken: tokens.accessToken,
+          idToken: dataAuth.data.idToken,
+        });
+        console.log(res);
+        await saveAuth(res.token, res.user);
+        navigation.replace("Main");
+      } catch (error) {
+        navigation.navigate("Form", {
+          accessToken: tokens.accessToken,
+          idToken: dataAuth.data.idToken,
+        });
+      }
     } catch (error) {
       console.error("Google Sign-In error:", error);
     } finally {

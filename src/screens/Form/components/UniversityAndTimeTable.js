@@ -2,22 +2,70 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import theme from "../../../theme";
 import { horizontalScale, verticalScale } from "../../../theme/sizing";
 import InputWithDropDown from "./InputWithDropDown";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CustomIcon from "../../../assets/icons/CustomIcon";
 import Toast from "react-native-toast-message";
 import * as ImagePicker from "expo-image-picker";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import {
+  searchCities,
+  searchUniversities,
+} from "../../../api/endpoints/search";
 
-export default function UniversityAndTimeTable({ setUniversity, setCity }) {
+export default function UniversityAndTimeTable({
+  setUniversity,
+  setCity,
+  university,
+  city,
+  setTimeTableImage,
+  rootAnimation,
+}) {
   const [universityText, setUniversityText] = useState("");
   const [cityText, setCityText] = useState("");
   const [hasImage, setHasImage] = useState(false);
 
-  const onUniversityChangeHandler = (text) => {
+  const [universityData, setUniversityData] = useState([]);
+  const [cityData, setCityData] = useState([]);
+
+  const upalodOpacity = useSharedValue(0);
+
+  useEffect(() => {
+    if (city && university) {
+      upalodOpacity.value = withTiming(1, { duration: 200 });
+    }
+  }, [city, university]);
+
+  const onUniversityChangeHandler = async (text) => {
     setUniversityText(text);
+    if (text.length >= 4) {
+      try {
+        const res = await searchUniversities({ q: text });
+        setUniversityData(res);
+      } catch (e) {
+        console.log(e);
+      }
+    } else {
+      setUniversityData([]);
+    }
   };
 
-  const onCityChangeHandler = (text) => {
+  const onCityChangeHandler = async (text) => {
     setCityText(text);
+    if (text.length >= 4) {
+      try {
+        const res = await searchCities({ q: text });
+        console.log(res);
+        setCityData(res);
+      } catch (e) {
+        console.log(e);
+      }
+    } else {
+      setCityData([]);
+    }
   };
 
   const onPickImage = async () => {
@@ -42,31 +90,53 @@ export default function UniversityAndTimeTable({ setUniversity, setCity }) {
       if (!result.canceled) {
         const image = result.assets[0];
         setHasImage(true);
-        console.log(image);
+        setTimeTableImage(image);
       }
     } catch (e) {
       console.log(e);
     }
   };
 
+  const UploadAnimatedStyle = useAnimatedStyle(() => {
+    return {
+      opacity: upalodOpacity.value,
+    };
+  });
+
+  const unsetUniversity = () => {
+    setUniversityData([]);
+  };
+
+  const unsetCity = () => {
+    setCityData([]);
+  };
+
   return (
-    <View style={styles.rootContainer}>
+    <Animated.View style={[styles.rootContainer, rootAnimation]}>
       <View style={styles.inputsHolder}>
         <InputWithDropDown
           value={universityText}
+          setText={setUniversityText}
           onChangeText={onUniversityChangeHandler}
           placeHolder={"Search your university"}
           icon={"username"}
+          data={universityData}
+          setValue={setUniversity}
+          unsetValue={unsetUniversity}
         />
         <InputWithDropDown
           value={cityText}
+          setText={setCityText}
           onChangeText={onCityChangeHandler}
           placeHolder={"Search your city"}
           icon={"username"}
+          data={cityData}
+          setValue={setCity}
+          unsetValue={unsetCity}
         />
       </View>
 
-      <View style={styles.uploadSection}>
+      <Animated.View style={[styles.uploadSection, UploadAnimatedStyle]}>
         <Text style={styles.sectionLabel}>Upload your timetable</Text>
         <Text style={styles.sectionHint}>
           We'll use this to find the best habits for your schedule
@@ -78,6 +148,7 @@ export default function UniversityAndTimeTable({ setUniversity, setCity }) {
             styles.uploaderContainer,
             hasImage && styles.uploaderContainerActive,
           ]}
+          disabled={!city || !university}
           onPress={onPickImage}
         >
           <CustomIcon
@@ -87,12 +158,17 @@ export default function UniversityAndTimeTable({ setUniversity, setCity }) {
             }
             size={28}
           />
-          <Text style={[styles.uploaderLabel, hasImage && styles.uploaderLabelActive]}>
+          <Text
+            style={[
+              styles.uploaderLabel,
+              hasImage && styles.uploaderLabelActive,
+            ]}
+          >
             {hasImage ? "Timetable uploaded" : "Tap to upload"}
           </Text>
         </Pressable>
-      </View>
-    </View>
+      </Animated.View>
+    </Animated.View>
   );
 }
 
@@ -100,6 +176,7 @@ const styles = StyleSheet.create({
   rootContainer: {
     width: "100%",
     height: "100%",
+    position: "absolute",
   },
   inputsHolder: {
     width: "100%",

@@ -3,6 +3,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import AppNavigator from "./src/navigation/AppNavigator";
 import ToastStyle from "./src/components/Toast/ToastStyle";
 import Toast from "react-native-toast-message";
+import { AuthProvider } from "./src/context/AuthContext";
 export default function App() {
   const toastConfig = {
     Error: ({ text1, text2 }) => (
@@ -19,7 +20,9 @@ export default function App() {
   return (
     <>
       <SafeAreaProvider>
-        <AppNavigator />
+        <AuthProvider>
+          <AppNavigator />
+        </AuthProvider>
       </SafeAreaProvider>
       <Toast config={toastConfig} />
     </>

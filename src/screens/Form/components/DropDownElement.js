@@ -9,7 +9,7 @@ export default function DropDownElement({ item, onPress }) {
         pressed && { opacity: 0.95, transform: [{ scale: 0.98 }] },
         styles.rootContainer,
       ]}
-      onPress={onPress}
+      onPress={() => onPress(item)}
     >
       <Text style={styles.text}>{item.name}</Text>
     </Pressable>

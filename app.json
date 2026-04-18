@@ -4,7 +4,8 @@
     "slug": "HackAthon",
     "version": "1.0.0",
     "android": {
-      "package": "com.bence1337.HackAthon"
+      "package": "com.bence1337.HackAthon",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
       [
