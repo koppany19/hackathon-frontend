@@ -25,35 +25,36 @@ const CATEGORY_COLOR = {
   social: "#ec4899",
 };
 
-function TaskItem({ item }) {
-  const completed = item.status === "completed";
-  const color = CATEGORY_COLOR[item.task?.category] ?? theme.colors.secondary;
+function groupBySubcategory(tasks) {
+  const individual = [];
+  const group = [];
+  const customGroup = [];
+  for (const t of tasks) {
+    const sid = t.subcategory_id;
+    const name = t.subcategory?.name;
+    if (sid === 3 || name === "custom_group") customGroup.push(t);
+    else if (sid === 2 || name === "group") group.push(t);
+    else individual.push(t);
+  }
+  return { individual, group, customGroup };
+}
 
+// Card for a currently-assigned daily task
+function DailyTaskCard({ item }) {
+  const completed = item.status === "completed";
   return (
-    <View style={[styles.taskCard, completed && styles.taskCardCompleted]}>
+    <View style={[styles.dailyCard, completed && styles.dailyCardCompleted]}>
       {item.photo_url ? (
-        <Image
-          source={{ uri: item.photo_url }}
-          style={styles.taskPhoto}
-          resizeMode="cover"
-        />
+        <Image source={{ uri: item.photo_url }} style={styles.dailyPhoto} resizeMode="cover" />
       ) : (
-        <View style={[styles.taskPhotoPlaceholder, { borderColor: color + "44" }]}>
-          <Text style={[styles.taskPhotoPlaceholderText, { color: color + "66" }]}>
-            No photo
-          </Text>
+        <View style={styles.dailyPhotoPlaceholder}>
+          <Text style={styles.dailyPhotoPlaceholderText}>No photo</Text>
         </View>
       )}
-
-      <View style={styles.taskInfo}>
-        <Text style={styles.taskTitle} numberOfLines={2}>
-          {item.task?.title}
-        </Text>
-        <Text style={styles.taskDesc} numberOfLines={3}>
-          {item.task?.description}
-        </Text>
-
-        <View style={styles.taskMeta}>
+      <View style={styles.dailyInfo}>
+        <Text style={styles.dailyTitle} numberOfLines={2}>{item.task?.title}</Text>
+        <Text style={styles.dailyDesc} numberOfLines={3}>{item.task?.description}</Text>
+        <View style={styles.metaRow}>
           <View
             style={[
               styles.difficultyDot,
@@ -68,7 +69,6 @@ function TaskItem({ item }) {
             ]}
           />
           <Text style={styles.difficultyText}>{item.task?.difficulty}</Text>
-
           {completed && (
             <View style={styles.completedBadge}>
               <Text style={styles.completedBadgeText}>Completed</Text>
@@ -80,22 +80,72 @@ function TaskItem({ item }) {
   );
 }
 
+// Card for an available (non-assigned) task
+function AvailableTaskCard({ item }) {
+  return (
+    <View style={styles.availableCard}>
+      <View style={styles.availableInfo}>
+        <Text style={styles.availableTitle} numberOfLines={2}>{item.title}</Text>
+        <Text style={styles.availableDesc} numberOfLines={2}>{item.description}</Text>
+        {item.location ? (
+          <Text style={styles.availableLocation} numberOfLines={1}>📍 {item.location}</Text>
+        ) : null}
+        <View style={styles.metaRow}>
+          <View
+            style={[
+              styles.difficultyDot,
+              {
+                backgroundColor:
+                  item.difficulty === "hard"
+                    ? "#ef4444"
+                    : item.difficulty === "medium"
+                      ? "#f59e0b"
+                      : "#10b981",
+              },
+            ]}
+          />
+          <Text style={styles.difficultyText}>{item.difficulty}</Text>
+          {item.time ? (
+            <Text style={styles.timeText}>{item.time.slice(0, 5)}</Text>
+          ) : null}
+        </View>
+      </View>
+    </View>
+  );
+}
+
+function SectionBlock({ title, tasks }) {
+  if (tasks.length === 0) return null;
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={styles.sectionCount}>{tasks.length}</Text>
+      </View>
+      {tasks.map((t, i) => (
+        <View key={t.id}>
+          <AvailableTaskCard item={t} />
+          {i < tasks.length - 1 && <View style={styles.gap} />}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export default function TaskDetailScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { tasks = [], category } = route.params ?? {};
+  const { dailyTasks = [], availableTasks = [], category } = route.params ?? {};
 
   const label = CATEGORY_LABEL[category] ?? category ?? "Tasks";
   const color = CATEGORY_COLOR[category] ?? theme.colors.secondary;
+
+  const { individual, group, customGroup } = groupBySubcategory(availableTasks);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <LinearGradient
         style={styles.topGlow}
-        colors={[
-          color + "55",
-          color + "22",
-          "rgba(0, 0, 0, 0)",
-        ]}
+        colors={[color + "55", color + "22", "rgba(0, 0, 0, 0)"]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         pointerEvents="none"
@@ -109,7 +159,7 @@ export default function TaskDetailScreen({ navigation, route }) {
         >
           <Text style={styles.backArrow}>‹</Text>
         </Pressable>
-        <Text style={styles.screenTitle}>{label} Tasks</Text>
+        <Text style={styles.screenTitle}>{label}</Text>
         <View style={styles.backBtn} />
       </View>
 
@@ -121,12 +171,29 @@ export default function TaskDetailScreen({ navigation, route }) {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {tasks.length === 0 ? (
+        {/* Current assigned tasks */}
+        {dailyTasks.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionLabel}>YOUR TASK TODAY</Text>
+            {dailyTasks.map((item) => (
+              <DailyTaskCard key={item.id} item={item} />
+            ))}
+          </View>
+        )}
+
+        {/* Available tasks by group type */}
+        {(individual.length > 0 || group.length > 0 || customGroup.length > 0) && (
+          <View style={styles.divider} />
+        )}
+
+        <SectionBlock title="Individual Tasks" tasks={individual} />
+        <SectionBlock title="Group Tasks" tasks={group} />
+        <SectionBlock title="Created-Group Tasks" tasks={customGroup} />
+
+        {dailyTasks.length === 0 && individual.length === 0 && group.length === 0 && customGroup.length === 0 && (
           <View style={styles.empty}>
             <Text style={styles.emptyText}>No {label.toLowerCase()} tasks found</Text>
           </View>
-        ) : (
-          tasks.map((item) => <TaskItem key={item.id} item={item} />)
         )}
       </ScrollView>
     </View>
@@ -175,10 +242,51 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: horizontalScale(16),
-    gap: verticalScale(10),
+    gap: verticalScale(12),
   },
 
-  taskCard: {
+  sectionLabel: {
+    color: "#4a4a4a",
+    fontSize: horizontalScale(10),
+    fontFamily: theme.fontFamily.semiBold,
+    letterSpacing: 2.5,
+    textTransform: "uppercase",
+    marginBottom: verticalScale(8),
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: "#FFFFFF08",
+    marginVertical: verticalScale(4),
+  },
+
+  section: {
+    gap: verticalScale(0),
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: horizontalScale(8),
+    marginBottom: verticalScale(8),
+  },
+  sectionTitle: {
+    color: "#4a4a4a",
+    fontSize: horizontalScale(10),
+    fontFamily: theme.fontFamily.semiBold,
+    letterSpacing: 2.5,
+    textTransform: "uppercase",
+  },
+  sectionCount: {
+    color: "#2e2e2e",
+    fontSize: horizontalScale(10),
+    fontFamily: theme.fontFamily.medium,
+  },
+  gap: {
+    height: verticalScale(8),
+  },
+
+  // Daily task card
+  dailyCard: {
     flexDirection: "row",
     borderRadius: horizontalScale(16),
     backgroundColor: "rgba(255,255,255,0.035)",
@@ -188,54 +296,90 @@ const styles = StyleSheet.create({
     padding: horizontalScale(12),
     gap: horizontalScale(12),
   },
-  taskCardCompleted: {
+  dailyCardCompleted: {
     borderColor: "rgba(170, 204, 0, 0.25)",
     backgroundColor: "rgba(170, 204, 0, 0.04)",
   },
-
-  taskPhoto: {
-    width: horizontalScale(80),
-    height: horizontalScale(80),
-    borderRadius: horizontalScale(12),
+  dailyPhoto: {
+    width: horizontalScale(72),
+    height: horizontalScale(72),
+    borderRadius: horizontalScale(10),
     flexShrink: 0,
   },
-  taskPhotoPlaceholder: {
-    width: horizontalScale(80),
-    height: horizontalScale(80),
-    borderRadius: horizontalScale(12),
+  dailyPhotoPlaceholder: {
+    width: horizontalScale(72),
+    height: horizontalScale(72),
+    borderRadius: horizontalScale(10),
     borderWidth: 1.5,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    borderColor: "rgba(255,255,255,0.1)",
+    backgroundColor: "rgba(255,255,255,0.03)",
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
-  taskPhotoPlaceholderText: {
+  dailyPhotoPlaceholderText: {
+    color: "rgba(255,255,255,0.2)",
     fontSize: horizontalScale(9),
     fontFamily: theme.fontFamily.medium,
   },
-
-  taskInfo: {
+  dailyInfo: {
     flex: 1,
-    justifyContent: "space-between",
     gap: verticalScale(4),
+    justifyContent: "center",
   },
-  taskTitle: {
+  dailyTitle: {
     color: theme.colors.text.primary,
     fontSize: horizontalScale(13),
     fontFamily: theme.fontFamily.semiBold,
     lineHeight: horizontalScale(18),
   },
-  taskDesc: {
+  dailyDesc: {
     color: theme.colors.text.secondary,
     fontSize: horizontalScale(11),
     fontFamily: theme.fontFamily.normal,
     lineHeight: horizontalScale(16),
-    flex: 1,
   },
-  taskMeta: {
+
+  // Available task card
+  availableCard: {
+    borderRadius: horizontalScale(14),
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+    padding: horizontalScale(14),
+  },
+  availableInfo: {
+    gap: verticalScale(5),
+  },
+  availableTitle: {
+    color: theme.colors.text.primary,
+    fontSize: horizontalScale(13),
+    fontFamily: theme.fontFamily.semiBold,
+    lineHeight: horizontalScale(18),
+  },
+  availableDesc: {
+    color: theme.colors.text.secondary,
+    fontSize: horizontalScale(11),
+    fontFamily: theme.fontFamily.normal,
+    lineHeight: horizontalScale(16),
+  },
+  availableLocation: {
+    color: "rgba(255,255,255,0.25)",
+    fontSize: horizontalScale(10),
+    fontFamily: theme.fontFamily.normal,
+  },
+  timeText: {
+    color: "rgba(255,255,255,0.25)",
+    fontSize: horizontalScale(10),
+    fontFamily: theme.fontFamily.medium,
+    marginLeft: horizontalScale(4),
+  },
+
+  // Shared
+  metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: horizontalScale(6),
+    gap: horizontalScale(5),
     flexWrap: "wrap",
   },
   difficultyDot: {

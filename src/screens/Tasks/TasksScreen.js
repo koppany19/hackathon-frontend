@@ -50,7 +50,7 @@ function CategoryBadge({ category }) {
   );
 }
 
-function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, allTasks }) {
+function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, allTasks, availableTasks }) {
   const [uploading, setUploading] = useState(false);
   const [photo, setPhoto] = useState(item.photo_url ?? null);
   const completed = item.status === "completed";
@@ -114,8 +114,13 @@ function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, al
 
   const onCardPress = () => {
     const category = item.task?.category;
-    const filtered = (allTasks ?? []).filter((t) => t.task?.category === category);
-    navigation.navigate("TaskDetail", { tasks: filtered, category });
+    const filteredDaily = (allTasks ?? []).filter((t) => t.task?.category === category);
+    const filteredAvailable = (availableTasks ?? []).filter((t) => t.category === category);
+    navigation.navigate("TaskDetail", {
+      dailyTasks: filteredDaily,
+      availableTasks: filteredAvailable,
+      category,
+    });
   };
 
   return (
@@ -208,6 +213,7 @@ export default function TasksScreen({ navigation }) {
   const { height: screenHeight } = useWindowDimensions();
   const [tasks, setTasks] = useState([]);
   const [allTasks, setAllTasks] = useState([]);
+  const [availableTasks, setAvailableTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -237,7 +243,10 @@ export default function TasksScreen({ navigation }) {
 
   useEffect(() => {
     getAvailableDailyTasks()
-      .then((res) => console.log("Available daily tasks:", JSON.stringify(res, null, 2)))
+      .then((res) => {
+        const list = Array.isArray(res) ? res : res.tasks ?? res.data ?? [];
+        setAvailableTasks(list);
+      })
       .catch((e) => console.log("Available daily tasks error:", e.message));
   }, []);
 
@@ -347,6 +356,7 @@ export default function TasksScreen({ navigation }) {
               onSwapped={onSwapped}
               navigation={navigation}
               allTasks={allTasks}
+              availableTasks={availableTasks}
             />
           ))}
         </View>
