@@ -50,7 +50,7 @@ function CategoryBadge({ category }) {
   );
 }
 
-function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, allTasks, availableTasks }) {
+function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, availableTasks }) {
   const [uploading, setUploading] = useState(false);
   const [photo, setPhoto] = useState(item.photo_url ?? null);
   const completed = item.status === "completed";
@@ -86,8 +86,9 @@ function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, al
 
       setUploading(true);
       try {
-        await uploadTaskPhoto(item.id, asset);
-        setPhoto(asset.uri);
+        const res = await uploadTaskPhoto(item.id, asset);
+        const remoteUri = res?.image_url ?? res?.url ?? res?.data?.image_url ?? asset.uri;
+        setPhoto(remoteUri);
         onPhotoUploaded(item.id);
         Toast.show({
           type: "success",
@@ -114,19 +115,7 @@ function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, al
     navigation.navigate("SwapTask", { dailyTask: item, onSwapped, availableTasks: filtered });
   };
 
-  const onCardPress = () => {
-    const category = item.task?.category;
-    const filteredDaily = (allTasks ?? []).filter((t) => t.task?.category === category);
-    const filteredAvailable = (availableTasks ?? []).filter((t) => t.category === category);
-    navigation.navigate("TaskDetail", {
-      dailyTasks: filteredDaily,
-      availableTasks: filteredAvailable,
-      category,
-    });
-  };
-
   return (
-    <Pressable onPress={onCardPress}>
     <Animated.View
       style={[
         styles.card,
@@ -206,7 +195,6 @@ function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, al
         </Pressable>
       </View>
     </Animated.View>
-    </Pressable>
   );
 }
 
@@ -214,7 +202,6 @@ export default function TasksScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const [tasks, setTasks] = useState([]);
-  const [allTasks, setAllTasks] = useState([]);
   const [availableTasks, setAvailableTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -225,7 +212,6 @@ export default function TasksScreen({ navigation }) {
       setError(null);
       const res = await getTodayTasks();
       const all = res.tasks ?? res ?? [];
-      setAllTasks(all);
       const picked = ["meal", "sport", "mental_health"].reduce((acc, cat) => {
         const match = all.find((t) => t.task?.category === cat);
         if (match) acc.push(match);
@@ -357,7 +343,6 @@ export default function TasksScreen({ navigation }) {
               onPhotoUploaded={onPhotoUploaded}
               onSwapped={onSwapped}
               navigation={navigation}
-              allTasks={allTasks}
               availableTasks={availableTasks}
             />
           ))}
