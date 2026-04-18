@@ -19,7 +19,11 @@ import Animated, {
 import Toast from "react-native-toast-message";
 import theme from "../../theme";
 import { horizontalScale, verticalScale } from "../../theme/sizing";
-import { getTodayTasks, uploadTaskPhoto, getAvailableDailyTasks } from "../../api/endpoints/tasks";
+import {
+  getTodayTasks,
+  uploadTaskPhoto,
+  getAvailableDailyTasks,
+} from "../../api/endpoints/tasks";
 
 const CATEGORY_LABEL = {
   meal: "Nutrition",
@@ -50,7 +54,15 @@ function CategoryBadge({ category }) {
   );
 }
 
-function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, allTasks, availableTasks }) {
+function TaskCard({
+  item,
+  onPhotoUploaded,
+  onSwapped,
+  cardHeight,
+  navigation,
+  allTasks,
+  availableTasks,
+}) {
   const [uploading, setUploading] = useState(false);
   const [photo, setPhoto] = useState(item.photo_url ?? null);
   const completed = item.status === "completed";
@@ -90,13 +102,14 @@ function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, al
         setPhoto(asset.uri);
         onPhotoUploaded(item.id);
         Toast.show({
-          type: "success",
+          type: "Success",
           text1: "Photo uploaded",
           text2: "Task evidence saved",
         });
       } catch (e) {
+        console.log(e);
         Toast.show({
-          type: "error",
+          type: "Error",
           text1: "Upload failed",
           text2: e.message ?? "Please try again",
         });
@@ -110,14 +123,24 @@ function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, al
 
   const onSwap = () => {
     const category = item.task?.category;
-    const filtered = (availableTasks ?? []).filter((t) => t.category === category);
-    navigation.navigate("SwapTask", { dailyTask: item, onSwapped, availableTasks: filtered });
+    const filtered = (availableTasks ?? []).filter(
+      (t) => t.category === category,
+    );
+    navigation.navigate("SwapTask", {
+      dailyTask: item,
+      onSwapped,
+      availableTasks: filtered,
+    });
   };
 
   const onCardPress = () => {
     const category = item.task?.category;
-    const filteredDaily = (allTasks ?? []).filter((t) => t.task?.category === category);
-    const filteredAvailable = (availableTasks ?? []).filter((t) => t.category === category);
+    const filteredDaily = (allTasks ?? []).filter(
+      (t) => t.task?.category === category,
+    );
+    const filteredAvailable = (availableTasks ?? []).filter(
+      (t) => t.category === category,
+    );
     navigation.navigate("TaskDetail", {
       dailyTasks: filteredDaily,
       availableTasks: filteredAvailable,
@@ -127,85 +150,85 @@ function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, al
 
   return (
     <Pressable onPress={onCardPress}>
-    <Animated.View
-      style={[
-        styles.card,
-        { height: cardHeight },
-        cardAnimStyle,
-        completed && styles.cardCompleted,
-      ]}
-    >
-      {/* Left — photo upload */}
-      <Pressable
-        onPress={onPickImage}
-        disabled={uploading || completed}
-        style={({ pressed }) => [
-          styles.photoBox,
-          photo && styles.photoBoxFilled,
-          pressed && { opacity: 0.75 },
+      <Animated.View
+        style={[
+          styles.card,
+          { height: cardHeight },
+          cardAnimStyle,
+          completed && styles.cardCompleted,
         ]}
       >
-        {uploading ? (
-          <ActivityIndicator color={theme.colors.secondary} size="small" />
-        ) : photo ? (
-          <Image
-            source={{ uri: photo }}
-            style={styles.photoImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <>
-            <View style={styles.uploadIcon}>
-              <Text style={styles.uploadIconGlyph}>+</Text>
-            </View>
-            <Text style={styles.uploadLabel}>Add photo</Text>
-          </>
-        )}
-      </Pressable>
-
-      {/* Right — info */}
-      <View style={styles.cardBody}>
-        <CategoryBadge category={item.task.category} />
-
-        <Text style={styles.taskTitle} numberOfLines={2}>
-          {item.task.title}
-        </Text>
-        <Text style={styles.taskDesc} numberOfLines={3}>
-          {item.task.description}
-        </Text>
-
-        <View style={styles.cardFooter}>
-          <View
-            style={[
-              styles.difficultyDot,
-              {
-                backgroundColor:
-                  item.task.difficulty === "hard"
-                    ? "#ef4444"
-                    : item.task.difficulty === "medium"
-                      ? "#f59e0b"
-                      : "#10b981",
-              },
-            ]}
-          />
-          <Text style={styles.difficultyText}>{item.task.difficulty}</Text>
-        </View>
-
+        {/* Left — photo upload */}
         <Pressable
-          onPress={onSwap}
-          disabled={completed}
+          onPress={onPickImage}
+          disabled={uploading || completed}
           style={({ pressed }) => [
-            styles.swapBtn,
-            completed && styles.swapBtnDisabled,
-            pressed && !completed && { opacity: 0.7 },
+            styles.photoBox,
+            photo && styles.photoBoxFilled,
+            pressed && { opacity: 0.75 },
           ]}
         >
-          <Text style={styles.swapBtnText}>
-            {completed ? "Completed" : "Swap task"}
-          </Text>
+          {uploading ? (
+            <ActivityIndicator color={theme.colors.secondary} size="small" />
+          ) : photo ? (
+            <Image
+              source={{ uri: photo }}
+              style={styles.photoImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <>
+              <View style={styles.uploadIcon}>
+                <Text style={styles.uploadIconGlyph}>+</Text>
+              </View>
+              <Text style={styles.uploadLabel}>Add photo</Text>
+            </>
+          )}
         </Pressable>
-      </View>
-    </Animated.View>
+
+        {/* Right — info */}
+        <View style={styles.cardBody}>
+          <CategoryBadge category={item.task.category} />
+
+          <Text style={styles.taskTitle} numberOfLines={2}>
+            {item.task.title}
+          </Text>
+          <Text style={styles.taskDesc} numberOfLines={3}>
+            {item.task.description}
+          </Text>
+
+          <View style={styles.cardFooter}>
+            <View
+              style={[
+                styles.difficultyDot,
+                {
+                  backgroundColor:
+                    item.task.difficulty === "hard"
+                      ? "#ef4444"
+                      : item.task.difficulty === "medium"
+                        ? "#f59e0b"
+                        : "#10b981",
+                },
+              ]}
+            />
+            <Text style={styles.difficultyText}>{item.task.difficulty}</Text>
+          </View>
+
+          <Pressable
+            onPress={onSwap}
+            disabled={completed}
+            style={({ pressed }) => [
+              styles.swapBtn,
+              completed && styles.swapBtnDisabled,
+              pressed && !completed && { opacity: 0.7 },
+            ]}
+          >
+            <Text style={styles.swapBtnText}>
+              {completed ? "Completed" : "Swap task"}
+            </Text>
+          </Pressable>
+        </View>
+      </Animated.View>
     </Pressable>
   );
 }
@@ -246,7 +269,7 @@ export default function TasksScreen({ navigation }) {
   useEffect(() => {
     getAvailableDailyTasks()
       .then((res) => {
-        const list = Array.isArray(res) ? res : res.tasks ?? res.data ?? [];
+        const list = Array.isArray(res) ? res : (res.tasks ?? res.data ?? []);
         setAvailableTasks(list);
       })
       .catch((e) => console.log("Available daily tasks error:", e.message));

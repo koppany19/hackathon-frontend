@@ -48,22 +48,33 @@ function CurrentTaskCard({ task }) {
   return (
     <View style={styles.currentCard}>
       <View style={styles.currentCardLeft}>
-        <View style={[styles.badge, { backgroundColor: color + "22", borderColor: color + "55" }]}>
+        <View
+          style={[
+            styles.badge,
+            { backgroundColor: color + "22", borderColor: color + "55" },
+          ]}
+        >
           <Text style={[styles.badgeText, { color }]}>
             {CATEGORY_LABEL[t?.category] ?? t?.category}
           </Text>
         </View>
-        <Text style={styles.currentTitle} numberOfLines={2}>{t?.title}</Text>
-        <Text style={styles.currentDesc} numberOfLines={2}>{t?.description}</Text>
+        <Text style={styles.currentTitle} numberOfLines={2}>
+          {t?.title}
+        </Text>
+        <Text style={styles.currentDesc} numberOfLines={2}>
+          {t?.description}
+        </Text>
         <View style={styles.metaRow}>
           <View
             style={[
               styles.difficultyDot,
               {
                 backgroundColor:
-                  t?.difficulty === "hard" ? "#ef4444"
-                  : t?.difficulty === "medium" ? "#f59e0b"
-                  : "#10b981",
+                  t?.difficulty === "hard"
+                    ? "#ef4444"
+                    : t?.difficulty === "medium"
+                      ? "#f59e0b"
+                      : "#10b981",
               },
             ]}
           />
@@ -84,15 +95,25 @@ function TaskOption({ item, onSelect, isSelecting, disabled }) {
       disabled={disabled}
       style={({ pressed }) => [
         styles.optionCard,
-        pressed && !disabled && { opacity: 0.7, backgroundColor: "rgba(170, 204, 0, 0.06)" },
+        pressed &&
+          !disabled && {
+            opacity: 0.7,
+            backgroundColor: "rgba(170, 204, 0, 0.06)",
+          },
         disabled && !isSelecting && styles.optionCardDisabled,
       ]}
     >
       <View style={styles.optionLeft}>
-        <Text style={styles.optionTitle} numberOfLines={2}>{item.title}</Text>
-        <Text style={styles.optionDesc} numberOfLines={2}>{item.description}</Text>
+        <Text style={styles.optionTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+        <Text style={styles.optionDesc} numberOfLines={2}>
+          {item.description}
+        </Text>
         {item.location ? (
-          <Text style={styles.optionLocation} numberOfLines={1}>{item.location}</Text>
+          <Text style={styles.optionLocation} numberOfLines={1}>
+            {item.location}
+          </Text>
         ) : null}
         <View style={styles.metaRow}>
           <View
@@ -100,9 +121,11 @@ function TaskOption({ item, onSelect, isSelecting, disabled }) {
               styles.difficultyDot,
               {
                 backgroundColor:
-                  item.difficulty === "hard" ? "#ef4444"
-                  : item.difficulty === "medium" ? "#f59e0b"
-                  : "#10b981",
+                  item.difficulty === "hard"
+                    ? "#ef4444"
+                    : item.difficulty === "medium"
+                      ? "#f59e0b"
+                      : "#10b981",
               },
             ]}
           />
@@ -139,7 +162,9 @@ function Section({ title, tasks, onSelect, selectingId }) {
             isSelecting={selectingId === t.id}
             disabled={selectingId !== null}
           />
-          {i < tasks.length - 1 && <View style={{ height: verticalScale(6) }} />}
+          {i < tasks.length - 1 && (
+            <View style={{ height: verticalScale(6) }} />
+          )}
         </View>
       ))}
     </View>
@@ -159,22 +184,35 @@ export default function SwapTaskScreen({ navigation, route }) {
     setSelectingId(targetTask.id);
     try {
       await swapTask(dailyTask.id, targetTask.id);
-      Toast.show({ type: "success", text1: "Task swapped", text2: targetTask.title });
+      Toast.show({
+        type: "Success",
+        text1: "Task swapped",
+        text2: targetTask.title,
+      });
       onSwapped?.();
       navigation.goBack();
     } catch (e) {
-      Toast.show({ type: "error", text1: "Swap failed", text2: e.message ?? "Please try again" });
+      Toast.show({
+        type: "Error",
+        text1: "Swap failed",
+        text2: e.message ?? "Please try again",
+      });
       setSelectingId(null);
     }
   };
 
-  const hasAny = individual.length > 0 || group.length > 0 || customGroup.length > 0;
+  const hasAny =
+    individual.length > 0 || group.length > 0 || customGroup.length > 0;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <LinearGradient
         style={styles.topGlow}
-        colors={["rgba(170, 204, 0, 0.30)", "rgba(86, 121, 20, 0.12)", "rgba(0, 0, 0, 0)"]}
+        colors={[
+          "rgba(170, 204, 0, 0.30)",
+          "rgba(86, 121, 20, 0.12)",
+          "rgba(0, 0, 0, 0)",
+        ]}
         start={{ x: 0.5, y: 0 }}
         end={{ x: 0.5, y: 1 }}
         pointerEvents="none"

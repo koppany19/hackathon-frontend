@@ -39,21 +39,28 @@ function groupBySubcategory(tasks) {
   return { individual, group, customGroup };
 }
 
-// Card for a currently-assigned daily task
 function DailyTaskCard({ item }) {
   const completed = item.status === "completed";
   return (
     <View style={[styles.dailyCard, completed && styles.dailyCardCompleted]}>
       {item.photo_url ? (
-        <Image source={{ uri: item.photo_url }} style={styles.dailyPhoto} resizeMode="cover" />
+        <Image
+          source={{ uri: item.photo_url }}
+          style={styles.dailyPhoto}
+          resizeMode="cover"
+        />
       ) : (
         <View style={styles.dailyPhotoPlaceholder}>
           <Text style={styles.dailyPhotoPlaceholderText}>No photo</Text>
         </View>
       )}
       <View style={styles.dailyInfo}>
-        <Text style={styles.dailyTitle} numberOfLines={2}>{item.task?.title}</Text>
-        <Text style={styles.dailyDesc} numberOfLines={3}>{item.task?.description}</Text>
+        <Text style={styles.dailyTitle} numberOfLines={2}>
+          {item.task?.title}
+        </Text>
+        <Text style={styles.dailyDesc} numberOfLines={3}>
+          {item.task?.description}
+        </Text>
         <View style={styles.metaRow}>
           <View
             style={[
@@ -80,15 +87,20 @@ function DailyTaskCard({ item }) {
   );
 }
 
-// Card for an available (non-assigned) task
 function AvailableTaskCard({ item }) {
   return (
     <View style={styles.availableCard}>
       <View style={styles.availableInfo}>
-        <Text style={styles.availableTitle} numberOfLines={2}>{item.title}</Text>
-        <Text style={styles.availableDesc} numberOfLines={2}>{item.description}</Text>
+        <Text style={styles.availableTitle} numberOfLines={2}>
+          {item.title}
+        </Text>
+        <Text style={styles.availableDesc} numberOfLines={2}>
+          {item.description}
+        </Text>
         {item.location ? (
-          <Text style={styles.availableLocation} numberOfLines={1}>📍 {item.location}</Text>
+          <Text style={styles.availableLocation} numberOfLines={1}>
+            📍 {item.location}
+          </Text>
         ) : null}
         <View style={styles.metaRow}>
           <View
@@ -171,7 +183,6 @@ export default function TaskDetailScreen({ navigation, route }) {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Current assigned tasks */}
         {dailyTasks.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>YOUR TASK TODAY</Text>
@@ -181,20 +192,24 @@ export default function TaskDetailScreen({ navigation, route }) {
           </View>
         )}
 
-        {/* Available tasks by group type */}
-        {(individual.length > 0 || group.length > 0 || customGroup.length > 0) && (
-          <View style={styles.divider} />
-        )}
+        {(individual.length > 0 ||
+          group.length > 0 ||
+          customGroup.length > 0) && <View style={styles.divider} />}
 
         <SectionBlock title="Individual Tasks" tasks={individual} />
         <SectionBlock title="Group Tasks" tasks={group} />
         <SectionBlock title="Created-Group Tasks" tasks={customGroup} />
 
-        {dailyTasks.length === 0 && individual.length === 0 && group.length === 0 && customGroup.length === 0 && (
-          <View style={styles.empty}>
-            <Text style={styles.emptyText}>No {label.toLowerCase()} tasks found</Text>
-          </View>
-        )}
+        {dailyTasks.length === 0 &&
+          individual.length === 0 &&
+          group.length === 0 &&
+          customGroup.length === 0 && (
+            <View style={styles.empty}>
+              <Text style={styles.emptyText}>
+                No {label.toLowerCase()} tasks found
+              </Text>
+            </View>
+          )}
       </ScrollView>
     </View>
   );
