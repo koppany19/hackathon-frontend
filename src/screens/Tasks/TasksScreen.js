@@ -109,7 +109,9 @@ function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, al
   };
 
   const onSwap = () => {
-    navigation.navigate("SwapTask", { dailyTask: item, onSwapped });
+    const category = item.task?.category;
+    const filtered = (availableTasks ?? []).filter((t) => t.category === category);
+    navigation.navigate("SwapTask", { dailyTask: item, onSwapped, availableTasks: filtered });
   };
 
   const onCardPress = () => {

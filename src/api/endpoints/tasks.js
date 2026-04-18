@@ -42,10 +42,7 @@ export function getAvailableDailyTasks() {
   return client.get("/daily-tasks/available");
 }
 
-export function getAvailableTasks() {
-  return client.get("/tasks");
-}
 
 export function swapTask(dailyTaskId, targetTaskId) {
-  return client.post(`/daily-tasks/${dailyTaskId}/swap`, { task_id: targetTaskId });
+  return client.patch(`/daily-tasks/${dailyTaskId}/swap/${targetTaskId}`);
 }

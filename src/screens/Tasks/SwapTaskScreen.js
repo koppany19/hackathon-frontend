@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import {
   View,
   Text,
@@ -12,7 +12,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import Toast from "react-native-toast-message";
 import theme from "../../theme";
 import { horizontalScale, verticalScale } from "../../theme/sizing";
-import { getAvailableTasks, swapTask } from "../../api/endpoints/tasks";
+import { swapTask } from "../../api/endpoints/tasks";
 
 const CATEGORY_LABEL = {
   meal: "Nutrition",
@@ -28,65 +28,89 @@ const CATEGORY_COLOR = {
   social: "#ec4899",
 };
 
-const TASK_TYPE_LABEL = {
-  individual: "Individual",
-  group: "Group",
-  custom_group: "Custom Group",
-};
-
-function CategoryBadge({ category }) {
-  const label = CATEGORY_LABEL[category] ?? category;
-  const color = CATEGORY_COLOR[category] ?? theme.colors.secondary;
-  return (
-    <View style={[styles.badge, { backgroundColor: color + "22", borderColor: color + "55" }]}>
-      <Text style={[styles.badgeText, { color }]}>{label}</Text>
-    </View>
-  );
-}
-
-function DifficultyDot({ difficulty }) {
-  const color =
-    difficulty === "hard" ? "#ef4444" : difficulty === "medium" ? "#f59e0b" : "#10b981";
-  return (
-    <View style={styles.difficultyRow}>
-      <View style={[styles.difficultyDot, { backgroundColor: color }]} />
-      <Text style={styles.difficultyText}>{difficulty}</Text>
-    </View>
-  );
+function groupBySubcategory(tasks) {
+  const individual = [];
+  const group = [];
+  const customGroup = [];
+  for (const t of tasks) {
+    const sid = t.subcategory_id;
+    const name = t.subcategory?.name;
+    if (sid === 3 || name === "custom_group") customGroup.push(t);
+    else if (sid === 2 || name === "group") group.push(t);
+    else individual.push(t);
+  }
+  return { individual, group, customGroup };
 }
 
 function CurrentTaskCard({ task }) {
   const t = task.task;
+  const color = CATEGORY_COLOR[t?.category] ?? theme.colors.secondary;
   return (
     <View style={styles.currentCard}>
       <View style={styles.currentCardLeft}>
-        <CategoryBadge category={t.category} />
-        <Text style={styles.currentTitle} numberOfLines={2}>{t.title}</Text>
-        <Text style={styles.currentDesc} numberOfLines={2}>{t.description}</Text>
-        <DifficultyDot difficulty={t.difficulty} />
+        <View style={[styles.badge, { backgroundColor: color + "22", borderColor: color + "55" }]}>
+          <Text style={[styles.badgeText, { color }]}>
+            {CATEGORY_LABEL[t?.category] ?? t?.category}
+          </Text>
+        </View>
+        <Text style={styles.currentTitle} numberOfLines={2}>{t?.title}</Text>
+        <Text style={styles.currentDesc} numberOfLines={2}>{t?.description}</Text>
+        <View style={styles.metaRow}>
+          <View
+            style={[
+              styles.difficultyDot,
+              {
+                backgroundColor:
+                  t?.difficulty === "hard" ? "#ef4444"
+                  : t?.difficulty === "medium" ? "#f59e0b"
+                  : "#10b981",
+              },
+            ]}
+          />
+          <Text style={styles.difficultyText}>{t?.difficulty}</Text>
+        </View>
       </View>
-      <View style={styles.currentCardBadge}>
-        <Text style={styles.currentCardBadgeText}>Current</Text>
+      <View style={styles.currentBadge}>
+        <Text style={styles.currentBadgeText}>Current</Text>
       </View>
     </View>
   );
 }
 
-function TaskOption({ item, onSelect, isSelecting }) {
+function TaskOption({ item, onSelect, isSelecting, disabled }) {
   return (
     <Pressable
       onPress={() => onSelect(item)}
-      disabled={isSelecting}
+      disabled={disabled}
       style={({ pressed }) => [
         styles.optionCard,
-        pressed && { opacity: 0.7, backgroundColor: "rgba(170, 204, 0, 0.06)" },
+        pressed && !disabled && { opacity: 0.7, backgroundColor: "rgba(170, 204, 0, 0.06)" },
+        disabled && !isSelecting && styles.optionCardDisabled,
       ]}
     >
       <View style={styles.optionLeft}>
-        <CategoryBadge category={item.category} />
         <Text style={styles.optionTitle} numberOfLines={2}>{item.title}</Text>
         <Text style={styles.optionDesc} numberOfLines={2}>{item.description}</Text>
-        <DifficultyDot difficulty={item.difficulty} />
+        {item.location ? (
+          <Text style={styles.optionLocation} numberOfLines={1}>{item.location}</Text>
+        ) : null}
+        <View style={styles.metaRow}>
+          <View
+            style={[
+              styles.difficultyDot,
+              {
+                backgroundColor:
+                  item.difficulty === "hard" ? "#ef4444"
+                  : item.difficulty === "medium" ? "#f59e0b"
+                  : "#10b981",
+              },
+            ]}
+          />
+          <Text style={styles.difficultyText}>{item.difficulty}</Text>
+          {item.time ? (
+            <Text style={styles.timeText}>{item.time.slice(0, 5)}</Text>
+          ) : null}
+        </View>
       </View>
       <View style={styles.optionAction}>
         {isSelecting ? (
@@ -99,59 +123,39 @@ function TaskOption({ item, onSelect, isSelecting }) {
   );
 }
 
-function SectionHeader({ title, count }) {
+function Section({ title, tasks, onSelect, selectingId }) {
+  if (tasks.length === 0) return null;
   return (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {count > 0 && <Text style={styles.sectionCount}>{count}</Text>}
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={styles.sectionCount}>{tasks.length}</Text>
+      </View>
+      {tasks.map((t, i) => (
+        <View key={t.id}>
+          <TaskOption
+            item={t}
+            onSelect={onSelect}
+            isSelecting={selectingId === t.id}
+            disabled={selectingId !== null}
+          />
+          {i < tasks.length - 1 && <View style={{ height: verticalScale(6) }} />}
+        </View>
+      ))}
     </View>
   );
 }
 
-function groupTasks(tasks) {
-  const individual = [];
-  const group = [];
-  const customGroup = [];
-
-  for (const t of tasks) {
-    const type = t.type ?? (t.subcategory_id === 3 ? "custom_group" : t.subcategory_id === 2 ? "group" : "individual");
-    if (type === "custom_group") customGroup.push(t);
-    else if (type === "group") group.push(t);
-    else individual.push(t);
-  }
-
-  return { individual, group, customGroup };
-}
-
 export default function SwapTaskScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
-  const { dailyTask, onSwapped } = route.params;
+  const { dailyTask, availableTasks = [], onSwapped } = route.params;
 
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [selectingId, setSelectingId] = useState(null);
 
-  const load = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const res = await getAvailableTasks();
-      const list = Array.isArray(res) ? res : res.tasks ?? res.data ?? [];
-      setTasks(list);
-    } catch (e) {
-      setError(e.message ?? "Failed to load tasks");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    load();
-  }, [load]);
+  const { individual, group, customGroup } = groupBySubcategory(availableTasks);
 
   const onSelect = async (targetTask) => {
-    if (selectingId) return;
+    if (selectingId !== null) return;
     setSelectingId(targetTask.id);
     try {
       await swapTask(dailyTask.id, targetTask.id);
@@ -164,12 +168,7 @@ export default function SwapTaskScreen({ navigation, route }) {
     }
   };
 
-  const { individual, group, customGroup } = groupTasks(tasks);
-  const sections = [
-    { key: "individual", label: TASK_TYPE_LABEL.individual, data: individual },
-    { key: "group", label: TASK_TYPE_LABEL.group, data: group },
-    { key: "custom_group", label: TASK_TYPE_LABEL.custom_group, data: customGroup },
-  ];
+  const hasAny = individual.length > 0 || group.length > 0 || customGroup.length > 0;
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -181,12 +180,15 @@ export default function SwapTaskScreen({ navigation, route }) {
         pointerEvents="none"
       />
 
-      {/* Top bar */}
       <View style={styles.topBar}>
         <Pressable
           onPress={() => navigation.goBack()}
           hitSlop={16}
-          style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.5 }]}
+          disabled={selectingId !== null}
+          style={({ pressed }) => [
+            styles.backBtn,
+            pressed && selectingId === null && { opacity: 0.5 },
+          ]}
         >
           <Text style={styles.backArrow}>‹</Text>
         </Pressable>
@@ -196,51 +198,44 @@ export default function SwapTaskScreen({ navigation, route }) {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + verticalScale(24) }]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + verticalScale(24) },
+        ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Current task */}
-        <Text style={styles.sectionLabel}>Currently assigned</Text>
+        <Text style={styles.label}>Currently assigned</Text>
         <CurrentTaskCard task={dailyTask} />
 
         <View style={styles.divider} />
 
-        <Text style={styles.sectionLabel}>Choose a replacement</Text>
+        <Text style={styles.label}>Choose a replacement</Text>
 
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator color={theme.colors.secondary} size="large" />
-          </View>
-        ) : error ? (
-          <View style={styles.center}>
-            <Text style={styles.errorText}>{error}</Text>
-            <Pressable
-              onPress={load}
-              style={({ pressed }) => [styles.retryBtn, pressed && { opacity: 0.6 }]}
-            >
-              <Text style={styles.retryText}>Retry</Text>
-            </Pressable>
+        {!hasAny ? (
+          <View style={styles.empty}>
+            <Text style={styles.emptyText}>No alternative tasks available</Text>
           </View>
         ) : (
-          sections.map(({ key, label, data }) => (
-            <View key={key} style={styles.section}>
-              <SectionHeader title={label} count={data.length} />
-              {data.length === 0 ? (
-                <Text style={styles.emptyText}>No tasks available</Text>
-              ) : (
-                data.map((t, i) => (
-                  <View key={t.id}>
-                    <TaskOption
-                      item={t}
-                      onSelect={onSelect}
-                      isSelecting={selectingId === t.id}
-                    />
-                    {i < data.length - 1 && <View style={styles.optionSeparator} />}
-                  </View>
-                ))
-              )}
-            </View>
-          ))
+          <>
+            <Section
+              title="Individual"
+              tasks={individual}
+              onSelect={onSelect}
+              selectingId={selectingId}
+            />
+            <Section
+              title="Group"
+              tasks={group}
+              onSelect={onSelect}
+              selectingId={selectingId}
+            />
+            <Section
+              title="Created Group"
+              tasks={customGroup}
+              onSelect={onSelect}
+              selectingId={selectingId}
+            />
+          </>
         )}
       </ScrollView>
     </View>
@@ -286,15 +281,13 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
 
-  scroll: {
-    flex: 1,
-  },
+  scroll: { flex: 1 },
   scrollContent: {
     paddingHorizontal: horizontalScale(16),
     gap: verticalScale(4),
   },
 
-  sectionLabel: {
+  label: {
     color: "#4a4a4a",
     fontSize: horizontalScale(10),
     fontFamily: theme.fontFamily.semiBold,
@@ -304,7 +297,13 @@ const styles = StyleSheet.create({
     marginTop: verticalScale(4),
   },
 
-  /* Current task card */
+  divider: {
+    height: 1,
+    backgroundColor: "#FFFFFF08",
+    marginVertical: verticalScale(12),
+  },
+
+  // Current task card
   currentCard: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -331,7 +330,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.fontFamily.normal,
     lineHeight: horizontalScale(17),
   },
-  currentCardBadge: {
+  currentBadge: {
     backgroundColor: "rgba(170, 204, 0, 0.15)",
     borderWidth: 1,
     borderColor: "rgba(170, 204, 0, 0.35)",
@@ -340,22 +339,16 @@ const styles = StyleSheet.create({
     paddingVertical: verticalScale(4),
     alignSelf: "flex-start",
   },
-  currentCardBadgeText: {
+  currentBadgeText: {
     color: theme.colors.secondary,
     fontSize: horizontalScale(10),
     fontFamily: theme.fontFamily.semiBold,
     letterSpacing: 0.5,
   },
 
-  divider: {
-    height: 1,
-    backgroundColor: "#FFFFFF08",
-    marginVertical: verticalScale(12),
-  },
-
-  /* Sections */
+  // Section
   section: {
-    marginBottom: verticalScale(8),
+    marginBottom: verticalScale(12),
   },
   sectionHeader: {
     flexDirection: "row",
@@ -376,7 +369,7 @@ const styles = StyleSheet.create({
     fontFamily: theme.fontFamily.medium,
   },
 
-  /* Task option */
+  // Task option
   optionCard: {
     flexDirection: "row",
     alignItems: "center",
@@ -386,6 +379,9 @@ const styles = StyleSheet.create({
     borderRadius: horizontalScale(14),
     padding: horizontalScale(14),
     gap: horizontalScale(10),
+  },
+  optionCardDisabled: {
+    opacity: 0.4,
   },
   optionLeft: {
     flex: 1,
@@ -403,6 +399,11 @@ const styles = StyleSheet.create({
     fontFamily: theme.fontFamily.normal,
     lineHeight: horizontalScale(16),
   },
+  optionLocation: {
+    color: "rgba(255,255,255,0.2)",
+    fontSize: horizontalScale(10),
+    fontFamily: theme.fontFamily.normal,
+  },
   optionAction: {
     borderWidth: 1,
     borderColor: "rgba(170, 204, 0, 0.3)",
@@ -419,11 +420,8 @@ const styles = StyleSheet.create({
     fontFamily: theme.fontFamily.semiBold,
     letterSpacing: 0.3,
   },
-  optionSeparator: {
-    height: verticalScale(6),
-  },
 
-  /* Category badge */
+  // Shared
   badge: {
     alignSelf: "flex-start",
     borderWidth: 1,
@@ -437,9 +435,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     textTransform: "uppercase",
   },
-
-  /* Difficulty */
-  difficultyRow: {
+  metaRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: horizontalScale(5),
@@ -455,34 +451,19 @@ const styles = StyleSheet.create({
     fontFamily: theme.fontFamily.medium,
     textTransform: "capitalize",
   },
-
-  center: {
-    paddingTop: verticalScale(40),
-    alignItems: "center",
-    gap: verticalScale(12),
+  timeText: {
+    color: "rgba(255,255,255,0.2)",
+    fontSize: horizontalScale(10),
+    fontFamily: theme.fontFamily.medium,
   },
-  errorText: {
+
+  empty: {
+    paddingTop: verticalScale(32),
+    alignItems: "center",
+  },
+  emptyText: {
     color: theme.colors.text.secondary,
     fontSize: horizontalScale(13),
     fontFamily: theme.fontFamily.normal,
-  },
-  retryBtn: {
-    paddingVertical: verticalScale(8),
-    paddingHorizontal: horizontalScale(20),
-    borderRadius: horizontalScale(12),
-    borderWidth: 1,
-    borderColor: theme.colors.secondary + "55",
-  },
-  retryText: {
-    color: theme.colors.secondary,
-    fontSize: horizontalScale(13),
-    fontFamily: theme.fontFamily.medium,
-  },
-  emptyText: {
-    color: "#2e2e2e",
-    fontSize: horizontalScale(12),
-    fontFamily: theme.fontFamily.normal,
-    paddingVertical: verticalScale(8),
-    paddingHorizontal: horizontalScale(4),
   },
 });
