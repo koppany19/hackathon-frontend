@@ -50,7 +50,7 @@ function CategoryBadge({ category }) {
   );
 }
 
-function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation }) {
+function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation, allTasks }) {
   const [uploading, setUploading] = useState(false);
   const [photo, setPhoto] = useState(item.photo_url ?? null);
   const completed = item.status === "completed";
@@ -112,7 +112,14 @@ function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation }) 
     navigation.navigate("SwapTask", { dailyTask: item, onSwapped });
   };
 
+  const onCardPress = () => {
+    const category = item.task?.category;
+    const filtered = (allTasks ?? []).filter((t) => t.task?.category === category);
+    navigation.navigate("TaskDetail", { tasks: filtered, category });
+  };
+
   return (
+    <Pressable onPress={onCardPress}>
     <Animated.View
       style={[
         styles.card,
@@ -192,6 +199,7 @@ function TaskCard({ item, onPhotoUploaded, onSwapped, cardHeight, navigation }) 
         </Pressable>
       </View>
     </Animated.View>
+    </Pressable>
   );
 }
 
@@ -199,6 +207,7 @@ export default function TasksScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const [tasks, setTasks] = useState([]);
+  const [allTasks, setAllTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -208,6 +217,7 @@ export default function TasksScreen({ navigation }) {
       setError(null);
       const res = await getTodayTasks();
       const all = res.tasks ?? res ?? [];
+      setAllTasks(all);
       const picked = ["meal", "sport", "mental_health"].reduce((acc, cat) => {
         const match = all.find((t) => t.task?.category === cat);
         if (match) acc.push(match);
@@ -336,6 +346,7 @@ export default function TasksScreen({ navigation }) {
               onPhotoUploaded={onPhotoUploaded}
               onSwapped={onSwapped}
               navigation={navigation}
+              allTasks={allTasks}
             />
           ))}
         </View>
