@@ -30,12 +30,13 @@ export function getTodayTasks() {
 export function uploadTaskPhoto(taskId, image) {
   if (!image?.uri) throw new Error("Image file is missing");
   const formData = new FormData();
-  formData.append("photo", {
+  formData.append("image", {
     uri: image.uri,
     name: inferFileName(image),
     type: inferMimeType(image),
   });
-  return client.post(`/daily-tasks/${taskId}/photo`, formData);
+  formData.append("daily_task_id", String(taskId));
+  return client.post("/feed/image", formData);
 }
 
 export function getAvailableDailyTasks() {

@@ -60,7 +60,6 @@ function TaskCard({
   onSwapped,
   cardHeight,
   navigation,
-  allTasks,
   availableTasks,
 }) {
   const [uploading, setUploading] = useState(false);
@@ -98,8 +97,10 @@ function TaskCard({
 
       setUploading(true);
       try {
-        await uploadTaskPhoto(item.id, asset);
-        setPhoto(asset.uri);
+        const res = await uploadTaskPhoto(item.id, asset);
+        const remoteUri =
+          res?.image_url ?? res?.url ?? res?.data?.image_url ?? asset.uri;
+        setPhoto(remoteUri);
         onPhotoUploaded(item.id);
         Toast.show({
           type: "Success",
@@ -133,103 +134,86 @@ function TaskCard({
     });
   };
 
-  const onCardPress = () => {
-    const category = item.task?.category;
-    const filteredDaily = (allTasks ?? []).filter(
-      (t) => t.task?.category === category,
-    );
-    const filteredAvailable = (availableTasks ?? []).filter(
-      (t) => t.category === category,
-    );
-    navigation.navigate("TaskDetail", {
-      dailyTasks: filteredDaily,
-      availableTasks: filteredAvailable,
-      category,
-    });
-  };
-
   return (
-    <Pressable onPress={onCardPress}>
-      <Animated.View
-        style={[
-          styles.card,
-          { height: cardHeight },
-          cardAnimStyle,
-          completed && styles.cardCompleted,
+    <Animated.View
+      style={[
+        styles.card,
+        { height: cardHeight },
+        cardAnimStyle,
+        completed && styles.cardCompleted,
+      ]}
+    >
+      {/* Left — photo upload */}
+      <Pressable
+        onPress={onPickImage}
+        disabled={uploading || completed}
+        style={({ pressed }) => [
+          styles.photoBox,
+          photo && styles.photoBoxFilled,
+          pressed && { opacity: 0.75 },
         ]}
       >
-        {/* Left — photo upload */}
+        {uploading ? (
+          <ActivityIndicator color={theme.colors.secondary} size="small" />
+        ) : photo ? (
+          <Image
+            source={{ uri: photo }}
+            style={styles.photoImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <>
+            <View style={styles.uploadIcon}>
+              <Text style={styles.uploadIconGlyph}>+</Text>
+            </View>
+            <Text style={styles.uploadLabel}>Add photo</Text>
+          </>
+        )}
+      </Pressable>
+
+      {/* Right — info */}
+      <View style={styles.cardBody}>
+        <CategoryBadge category={item.task.category} />
+
+        <Text style={styles.taskTitle} numberOfLines={2}>
+          {item.task.title}
+        </Text>
+        <Text style={styles.taskDesc} numberOfLines={3}>
+          {item.task.description}
+        </Text>
+
+        <View style={styles.cardFooter}>
+          <View
+            style={[
+              styles.difficultyDot,
+              {
+                backgroundColor:
+                  item.task.difficulty === "hard"
+                    ? "#ef4444"
+                    : item.task.difficulty === "medium"
+                      ? "#f59e0b"
+                      : "#10b981",
+              },
+            ]}
+          />
+          <Text style={styles.difficultyText}>{item.task.difficulty}</Text>
+        </View>
+
         <Pressable
-          onPress={onPickImage}
-          disabled={uploading || completed}
+          onPress={onSwap}
+          disabled={completed}
           style={({ pressed }) => [
-            styles.photoBox,
-            photo && styles.photoBoxFilled,
-            pressed && { opacity: 0.75 },
+            styles.swapBtn,
+            completed && styles.swapBtnDisabled,
+            pressed && !completed && { opacity: 0.7 },
           ]}
         >
-          {uploading ? (
-            <ActivityIndicator color={theme.colors.secondary} size="small" />
-          ) : photo ? (
-            <Image
-              source={{ uri: photo }}
-              style={styles.photoImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <>
-              <View style={styles.uploadIcon}>
-                <Text style={styles.uploadIconGlyph}>+</Text>
-              </View>
-              <Text style={styles.uploadLabel}>Add photo</Text>
-            </>
-          )}
+          <Text style={styles.swapBtnText}>
+            {completed ? "Completed" : "Swap task"}
+          </Text>
         </Pressable>
-
-        {/* Right — info */}
-        <View style={styles.cardBody}>
-          <CategoryBadge category={item.task.category} />
-
-          <Text style={styles.taskTitle} numberOfLines={2}>
-            {item.task.title}
-          </Text>
-          <Text style={styles.taskDesc} numberOfLines={3}>
-            {item.task.description}
-          </Text>
-
-          <View style={styles.cardFooter}>
-            <View
-              style={[
-                styles.difficultyDot,
-                {
-                  backgroundColor:
-                    item.task.difficulty === "hard"
-                      ? "#ef4444"
-                      : item.task.difficulty === "medium"
-                        ? "#f59e0b"
-                        : "#10b981",
-                },
-              ]}
-            />
-            <Text style={styles.difficultyText}>{item.task.difficulty}</Text>
-          </View>
-
-          <Pressable
-            onPress={onSwap}
-            disabled={completed}
-            style={({ pressed }) => [
-              styles.swapBtn,
-              completed && styles.swapBtnDisabled,
-              pressed && !completed && { opacity: 0.7 },
-            ]}
-          >
-            <Text style={styles.swapBtnText}>
-              {completed ? "Completed" : "Swap task"}
-            </Text>
-          </Pressable>
-        </View>
-      </Animated.View>
-    </Pressable>
+      </View>
+    </Animated.View>
   );
 }
 
@@ -237,7 +221,6 @@ export default function TasksScreen({ navigation }) {
   const insets = useSafeAreaInsets();
   const { height: screenHeight } = useWindowDimensions();
   const [tasks, setTasks] = useState([]);
-  const [allTasks, setAllTasks] = useState([]);
   const [availableTasks, setAvailableTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -248,7 +231,6 @@ export default function TasksScreen({ navigation }) {
       setError(null);
       const res = await getTodayTasks();
       const all = res.tasks ?? res ?? [];
-      setAllTasks(all);
       const picked = ["meal", "sport", "mental_health"].reduce((acc, cat) => {
         const match = all.find((t) => t.task?.category === cat);
         if (match) acc.push(match);
@@ -380,7 +362,6 @@ export default function TasksScreen({ navigation }) {
               onPhotoUploaded={onPhotoUploaded}
               onSwapped={onSwapped}
               navigation={navigation}
-              allTasks={allTasks}
               availableTasks={availableTasks}
             />
           ))}
